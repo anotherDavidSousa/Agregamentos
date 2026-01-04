@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block title %}Início - Sistema de Agregamento{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="bi bi-speedometer2"></i> Dashboard</h2>
+        </div>
+    </div>
+    
+    <!-- Cards de Estatísticas -->
+    <div class="row mb-4">
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <h3>{{ parceiros_ativos }}</h3>
+                <p><i class="bi bi-people"></i> Parceiros Ativos</p>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                <h3>{{ total_cavalos }}</h3>
+                <p><i class="bi bi-truck"></i> Cavalos</p>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                <h3>{{ total_carretas }}</h3>
+                <p><i class="bi bi-box"></i> Carretas</p>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="stat-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                <h3>{{ carretas_disponiveis }}</h3>
+                <p><i class="bi bi-check-circle"></i> Carretas Disponíveis</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Cards de Fluxos -->
+    <div class="row mb-4">
+        <div class="col-md-4 col-sm-6 mb-3">
+            <div class="stat-card" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                <h3>{{ veiculos_escoria }}</h3>
+                <p><i class="bi bi-arrow-right-circle"></i> Harsco/Escória</p>
+            </div>
+        </div>
+        <div class="col-md-4 col-sm-6 mb-3">
+            <div class="stat-card" style="background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);">
+                <h3>{{ veiculos_minerio }}</h3>
+                <p><i class="bi bi-arrow-right-circle"></i> Bemisa/Minério</p>
+            </div>
+        </div>
+        <div class="col-md-4 col-sm-6 mb-3">
+            <div class="stat-card" style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);">
+                <h3>{{ outros_fluxos }}</h3>
+                <p><i class="bi bi-question-circle"></i> Outros Fluxos</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

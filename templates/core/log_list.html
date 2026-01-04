@@ -1,0 +1,233 @@
+{% extends 'base.html' %}
+
+{% block title %}Logs - Sistema de Agregamento{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="bi bi-clock-history"></i> Logs</h2>
+            <p class="text-muted">Histórico de alterações e eventos</p>
+        </div>
+    </div>
+    
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-funnel"></i> Filtros</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="tipo" class="form-label">Tipo</label>
+                    <select class="form-select" id="tipo" name="tipo">
+                        <option value="">Todos</option>
+                        <option value="acoplamento" {% if tipo_filter == 'acoplamento' %}selected{% endif %}>Acoplamento</option>
+                        <option value="desacoplamento" {% if tipo_filter == 'desacoplamento' %}selected{% endif %}>Desacoplamento</option>
+                        <option value="troca" {% if tipo_filter == 'troca' %}selected{% endif %}>Troca de Carreta</option>
+                        <option value="desagregacao" {% if tipo_filter == 'desagregacao' %}selected{% endif %}>Desagregação</option>
+                        <option value="motorista_adicionado" {% if tipo_filter == 'motorista_adicionado' %}selected{% endif %}>Motorista Adicionado</option>
+                        <option value="motorista_removido" {% if tipo_filter == 'motorista_removido' %}selected{% endif %}>Motorista Removido</option>
+                        <option value="motorista_alterado" {% if tipo_filter == 'motorista_alterado' %}selected{% endif %}>Motorista Alterado</option>
+                        <option value="proprietario_alterado" {% if tipo_filter == 'proprietario_alterado' %}selected{% endif %}>Proprietário Alterado</option>
+                        <option value="troca_proprietario" {% if tipo_filter == 'troca_proprietario' %}selected{% endif %}>Troca de Proprietário</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="placa" class="form-label">Placa ou Nome</label>
+                    <input type="text" 
+                           class="form-control" 
+                           id="placa" 
+                           name="placa" 
+                           value="{{ placa_filter }}" 
+                           placeholder="Placa, motorista ou proprietário">
+                </div>
+                <div class="col-md-2">
+                    <label for="data_inicio" class="form-label">Data Início</label>
+                    <input type="date" 
+                           class="form-control" 
+                           id="data_inicio" 
+                           name="data_inicio" 
+                           value="{{ data_inicio }}">
+                </div>
+                <div class="col-md-2">
+                    <label for="data_fim" class="form-label">Data Fim</label>
+                    <input type="date" 
+                           class="form-control" 
+                           id="data_fim" 
+                           name="data_fim" 
+                           value="{{ data_fim }}">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="bi bi-search"></i> Filtrar
+                    </button>
+                    <a href="{% url 'log_list' %}" class="btn btn-secondary">
+                        <i class="bi bi-x-circle"></i> Limpar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Tabela de Logs -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-table"></i> Lista de Logs</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Data/Hora</th>
+                                    <th>Tipo</th>
+                                    <th>Placa do Cavalo</th>
+                                    <th>Carreta Anterior</th>
+                                    <th>Carreta Nova</th>
+                                    <th>Motorista Anterior</th>
+                                    <th>Motorista Novo</th>
+                                    <th>Proprietário Anterior</th>
+                                    <th>Proprietário Novo</th>
+                                    <th>Descrição</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in logs %}
+                                <tr>
+                                    <td>{{ log.data_hora|date:"d/m/Y H:i" }}</td>
+                                    <td>
+                                        {% if log.tipo == 'acoplamento' %}
+                                            <span class="badge bg-success">{{ log.get_tipo_display }}</span>
+                                        {% elif log.tipo == 'desacoplamento' %}
+                                            <span class="badge bg-danger">{{ log.get_tipo_display }}</span>
+                                        {% elif log.tipo == 'troca' %}
+                                            <span class="badge bg-warning">{{ log.get_tipo_display }}</span>
+                                        {% elif log.tipo == 'desagregacao' %}
+                                            <span class="badge bg-secondary">{{ log.get_tipo_display }}</span>
+                                        {% elif log.tipo == 'motorista_adicionado' %}
+                                            <span class="badge bg-info">{{ log.get_tipo_display }}</span>
+                                        {% elif log.tipo == 'motorista_removido' %}
+                                            <span class="badge bg-danger">{{ log.get_tipo_display }}</span>
+                                        {% elif log.tipo == 'motorista_alterado' %}
+                                            <span class="badge bg-warning">{{ log.get_tipo_display }}</span>
+                                        {% elif log.tipo == 'proprietario_alterado' or log.tipo == 'troca_proprietario' %}
+                                            <span class="badge bg-primary">{{ log.get_tipo_display }}</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ log.get_tipo_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if log.placa_cavalo %}
+                                            <strong>{{ log.placa_cavalo }}</strong>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if log.carreta_anterior %}
+                                            <span class="badge bg-secondary">{{ log.carreta_anterior }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if log.carreta_nova %}
+                                            <span class="badge bg-success">{{ log.carreta_nova }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if log.motorista_anterior %}
+                                            <span class="badge bg-warning">{{ log.motorista_anterior }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if log.motorista_novo %}
+                                            <span class="badge bg-info">{{ log.motorista_novo }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if log.proprietario_anterior %}
+                                            <span class="badge bg-warning">{{ log.proprietario_anterior }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if log.proprietario_novo %}
+                                            <span class="badge bg-primary">{{ log.proprietario_novo }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if log.descricao %}
+                                            <small>{{ log.descricao }}</small>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="10" class="text-center text-muted py-4">
+                                        <i class="bi bi-info-circle"></i> Nenhum log encontrado.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Paginação -->
+                    {% if logs.has_other_pages %}
+                    <nav aria-label="Paginação de logs">
+                        <ul class="pagination justify-content-center mt-4">
+                            {% if logs.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" 
+                                   href="?page={{ logs.previous_page_number }}{% if tipo_filter %}&tipo={{ tipo_filter }}{% endif %}{% if placa_filter %}&placa={{ placa_filter }}{% endif %}{% if data_inicio %}&data_inicio={{ data_inicio }}{% endif %}{% if data_fim %}&data_fim={{ data_fim }}{% endif %}">
+                                    <i class="bi bi-chevron-left"></i> Anterior
+                                </a>
+                            </li>
+                            {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link"><i class="bi bi-chevron-left"></i> Anterior</span>
+                            </li>
+                            {% endif %}
+                            
+                            <li class="page-item active">
+                                <span class="page-link">
+                                    Página {{ logs.number }} de {{ logs.paginator.num_pages }}
+                                </span>
+                            </li>
+                            
+                            {% if logs.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" 
+                                   href="?page={{ logs.next_page_number }}{% if tipo_filter %}&tipo={{ tipo_filter }}{% endif %}{% if placa_filter %}&placa={{ placa_filter }}{% endif %}{% if data_inicio %}&data_inicio={{ data_inicio }}{% endif %}{% if data_fim %}&data_fim={{ data_fim }}{% endif %}">
+                                    Próxima <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                            {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">Próxima <i class="bi bi-chevron-right"></i></span>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

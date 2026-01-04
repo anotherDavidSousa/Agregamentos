@@ -1,0 +1,192 @@
+{% extends 'base.html' %}
+
+{% block title %}Gestores - Sistema de Agregamento{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="bi bi-person-gear"></i> Gestores</h2>
+            <p class="text-muted">Lista de gestores e faturamento</p>
+        </div>
+    </div>
+    
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-funnel"></i> Filtros</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="gestor" class="form-label">Pesquisar por Gestor</label>
+                    <select class="form-select" id="gestor" name="gestor">
+                        <option value="">Todos os gestores</option>
+                        {% for gestor in todos_gestores %}
+                        <option value="{{ gestor.id }}" {% if gestor_filter == gestor.id|stringformat:"s" %}selected{% endif %}>
+                            {{ gestor.nome }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="periodo_inicio" class="form-label">Período - Início</label>
+                    <input type="date" 
+                           class="form-control" 
+                           id="periodo_inicio" 
+                           name="periodo_inicio" 
+                           value="{{ periodo_inicio }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="periodo_fim" class="form-label">Período - Fim</label>
+                    <input type="date" 
+                           class="form-control" 
+                           id="periodo_fim" 
+                           name="periodo_fim" 
+                           value="{{ periodo_fim }}">
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="bi bi-search"></i> Filtrar
+                    </button>
+                    <a href="{% url 'gestor_list' %}" class="btn btn-secondary">
+                        <i class="bi bi-x-circle"></i> Limpar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Tabela de Gestores -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-table"></i> Lista de Gestores</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Nome do Gestor</th>
+                                    <th>Agregados</th>
+                                    <th>Min. no Período</th>
+                                    <th>Max. no Período</th>
+                                    <th>Meta de Faturamento</th>
+                                    <th>Faturamento Alcançado no Período</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in dados_gestores %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ item.gestor.nome|default:"-" }}</strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ item.agregados }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ item.min_periodo }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ item.max_periodo }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">R$ {{ item.meta_faturamento|floatformat:2 }}</span>
+                                    </td>
+                                    <td>
+                                        {% if item.faturamento_alcancado >= item.meta_faturamento %}
+                                            <span class="badge bg-success">R$ {{ item.faturamento_alcancado|floatformat:2 }}</span>
+                                        {% else %}
+                                            <span class="badge bg-warning">R$ {{ item.faturamento_alcancado|floatformat:2 }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted py-4">
+                                        <i class="bi bi-info-circle"></i> Nenhum gestor encontrado.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Lista de Placas com Faturamento -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-list-ol"></i> Lista de Placas por Faturamento</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>PLACA CAVALO</th>
+                                    <th>Motorista</th>
+                                    <th>Parceiro</th>
+                                    <th>Tipo</th>
+                                    <th>Fluxo</th>
+                                    <th>Faturamento Esperado</th>
+                                    <th>Faturamento</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in lista_placas %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ item.placa }}</strong>
+                                    </td>
+                                    <td>{{ item.motorista|default:"-" }}</td>
+                                    <td>{{ item.parceiro|default:"-" }}</td>
+                                    <td>
+                                        {% if item.tipo and item.tipo != '-' %}
+                                            <span class="badge bg-info">{{ item.tipo }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if item.fluxo and item.fluxo != '-' %}
+                                            {% if item.fluxo == 'Escória' %}
+                                                <span class="badge bg-warning">{{ item.fluxo }}</span>
+                                            {% elif item.fluxo == 'Minério' %}
+                                                <span class="badge bg-primary">{{ item.fluxo }}</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">{{ item.fluxo }}</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">R$ {{ item.faturamento_esperado|floatformat:2 }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-success">R$ {{ item.faturamento|floatformat:2 }}</span>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted py-4">
+                                        <i class="bi bi-info-circle"></i> Nenhuma placa encontrada.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

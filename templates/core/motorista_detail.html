@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+
+{% block title %}Motorista - {{ motorista.nome }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="bi bi-person-badge"></i> Motorista: {{ motorista.nome|default:"Sem nome" }}</h2>
+            <p class="text-muted">Detalhes do motorista</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Foto do Motorista -->
+        {% if motorista.foto %}
+        <div class="col-md-3 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-image"></i> Foto</h5>
+                </div>
+                <div class="card-body text-center">
+                    <img src="{{ motorista.foto.url }}" 
+                         alt="Foto do motorista {{ motorista.nome }}" 
+                         class="img-fluid rounded"
+                         style="max-height: 250px; object-fit: contain;">
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Informações do Motorista -->
+        <div class="{% if motorista.foto %}col-md-9{% else %}col-md-12{% endif %}">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-info-circle"></i> Informações</h5>
+                    <div>
+                        <a href="{% url 'motorista_edit' motorista.pk %}" class="btn btn-sm btn-primary">
+                            <i class="bi bi-pencil"></i> Editar
+                        </a>
+                        <a href="{% url 'motorista_list' %}" class="btn btn-sm btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Voltar
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th width="40%">Nome:</th>
+                                    <td><strong>{{ motorista.nome|default:"-" }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <th>CPF:</th>
+                                    <td>{{ motorista.cpf|default:"-" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>WhatsApp:</th>
+                                    <td>
+                                        {% if motorista.whatsapp %}
+                                            {% with whatsapp_limpo=motorista.whatsapp|cut:" "|cut:"("|cut:")"|cut:"-"|cut:"." %}
+                                            <a href="https://wa.me/55{{ whatsapp_limpo }}" 
+                                               target="_blank" 
+                                               class="btn btn-sm btn-success">
+                                                <i class="bi bi-whatsapp"></i> {{ motorista.whatsapp }}
+                                            </a>
+                                            {% endwith %}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th width="40%">Cavalo:</th>
+                                    <td>
+                                        {% if motorista.cavalo %}
+                                            <a href="{% url 'cavalo_detail' motorista.cavalo.pk %}" class="badge bg-primary">
+                                                {{ motorista.cavalo.placa|default:"Sem placa" }}
+                                            </a>
+                                        {% else %}
+                                            <span class="badge bg-warning">Sem cavalo</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Carreta:</th>
+                                    <td>
+                                        {% if motorista.cavalo and motorista.cavalo.carreta %}
+                                            <a href="{% url 'carreta_detail' motorista.cavalo.carreta.pk %}" class="badge bg-secondary">
+                                                {{ motorista.cavalo.carreta.placa }}
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Tipo do Cavalo:</th>
+                                    <td>
+                                        {% if motorista.cavalo and motorista.cavalo.tipo %}
+                                            <span class="badge bg-info">{{ motorista.cavalo.get_tipo_display }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Documento do Motorista -->
+    {% if motorista.documento %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-file-earmark-pdf"></i> Documento</h5>
+                </div>
+                <div class="card-body">
+                    <a href="{{ motorista.documento.url }}" 
+                       target="_blank" 
+                       class="btn btn-primary">
+                        <i class="bi bi-download"></i> Baixar Documento (PDF)
+                    </a>
+                    <small class="text-muted d-block mt-2">
+                        <i class="bi bi-info-circle"></i> Clique para visualizar ou baixar o documento do motorista.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

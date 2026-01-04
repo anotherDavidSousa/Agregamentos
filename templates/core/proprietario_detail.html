@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block title %}Proprietário - {{ proprietario.nome_razao_social }}{% endblock %}
+
+{% block content %}
+<h2>Proprietário: {{ proprietario.nome_razao_social|default:"Sem nome" }}</h2>
+
+<div class="actions">
+    <a href="{% url 'proprietario_edit' proprietario.pk %}" class="btn">Editar</a>
+    <a href="{% url 'proprietario_list' %}" class="btn btn-secondary">Voltar</a>
+</div>
+
+<div style="margin-top: 2rem;">
+    <h3>Informações</h3>
+    <table>
+        <tr>
+            <th>Código</th>
+            <td>
+                {% if proprietario.codigo %}
+                    <span class="badge bg-primary">{{ proprietario.codigo }}</span>
+                {% else %}
+                    <span class="text-muted">-</span>
+                {% endif %}
+            </td>
+        </tr>
+        <tr>
+            <th>Nome/Razão Social</th>
+            <td>{{ proprietario.nome_razao_social|default:"-" }}</td>
+        </tr>
+        <tr>
+            <th>Tipo</th>
+            <td>{{ proprietario.get_tipo_display|default:"-" }}</td>
+        </tr>
+        <tr>
+            <th>Documento</th>
+            <td>
+                {% if proprietario.documento %}
+                    <a href="{{ proprietario.documento.url }}" target="_blank">Ver documento</a>
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+        </tr>
+        <tr>
+            <th>Observações</th>
+            <td>{{ proprietario.observacoes|default:"-" }}</td>
+        </tr>
+    </table>
+</div>
+
+{% if cavalos %}
+<div style="margin-top: 2rem;">
+    <h3>Cavalos ({{ cavalos.count }})</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Placa</th>
+                <th>Situação</th>
+                <th>Fluxo</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cavalo in cavalos %}
+            <tr>
+                <td>{{ cavalo.placa|default:"-" }}</td>
+                <td>{{ cavalo.get_situacao_display|default:"-" }}</td>
+                <td>{{ cavalo.get_fluxo_display|default:"-" }}</td>
+                <td><a href="{% url 'cavalo_detail' cavalo.pk %}" class="btn btn-secondary">Ver</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% endblock %}
+

@@ -1,0 +1,209 @@
+{% extends 'base.html' %}
+
+{% block title %}Carreta - {{ carreta.placa }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="bi bi-box"></i> Carreta: {{ carreta.placa|default:"Sem placa" }}</h2>
+            <p class="text-muted">Detalhes da carreta</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Foto da Carreta -->
+        {% if carreta.foto %}
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-image"></i> Foto</h5>
+                </div>
+                <div class="card-body text-center">
+                    <img src="{{ carreta.foto.url }}" 
+                         alt="Foto da carreta {{ carreta.placa }}" 
+                         class="img-fluid rounded"
+                         style="max-height: 400px; object-fit: contain;">
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Informações da Carreta -->
+        <div class="{% if carreta.foto %}col-md-8{% else %}col-md-12{% endif %}">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-info-circle"></i> Informações</h5>
+                    <div>
+                        <a href="{% url 'carreta_edit' carreta.pk %}" class="btn btn-sm btn-primary">
+                            <i class="bi bi-pencil"></i> Editar
+                        </a>
+                        <a href="{% url 'carreta_list' %}" class="btn btn-sm btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Voltar
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th width="40%">Placa:</th>
+                                    <td><strong>{{ carreta.placa|default:"-" }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <th>Marca:</th>
+                                    <td>{{ carreta.marca|default:"-" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Modelo:</th>
+                                    <td>{{ carreta.modelo|default:"-" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Ano:</th>
+                                    <td>{{ carreta.ano|default:"-" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Cor:</th>
+                                    <td>{{ carreta.cor|default:"-" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Tipo:</th>
+                                    <td>
+                                        {% if carreta.tipo %}
+                                            <span class="badge bg-info">{{ carreta.get_tipo_display }}</span>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Cavalo Acoplado:</th>
+                                    <td>
+                                        {% with cavalo=carreta.get_cavalo %}
+                                            {% if cavalo %}
+                                                <a href="{% url 'cavalo_detail' cavalo.pk %}" class="badge bg-secondary">
+                                                    {{ cavalo.placa }}
+                                                </a>
+                                            {% else %}
+                                                <span class="badge bg-success">Disponível</span>
+                                            {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th width="40%">Última Lavagem:</th>
+                                    <td>
+                                        {% if carreta.ultima_lavagem %}
+                                            {{ carreta.ultima_lavagem|date:"d/m/Y" }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Próxima Lavagem:</th>
+                                    <td>
+                                        {% if carreta.proxima_lavagem %}
+                                            {{ carreta.proxima_lavagem|date:"d/m/Y" }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Polietileno:</th>
+                                    <td>
+                                        {% if carreta.polietileno %}
+                                            <span class="badge bg-info">{{ carreta.get_polietileno_display }}</span>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Cones:</th>
+                                    <td>
+                                        {% if carreta.cones %}
+                                            <span class="badge bg-info">{{ carreta.get_cones_display }}</span>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Localizador:</th>
+                                    <td>
+                                        {% if carreta.localizador %}
+                                            <span class="badge bg-info">{{ carreta.get_localizador_display }}</span>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Lona Fácil:</th>
+                                    <td>
+                                        {% if carreta.lona_facil %}
+                                            <span class="badge bg-info">{{ carreta.get_lona_facil_display }}</span>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Step:</th>
+                                    <td>
+                                        {% if carreta.step %}
+                                            <span class="badge bg-info">{{ carreta.get_step_display }}</span>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Local:</th>
+                                    <td>
+                                        {% if carreta.local %}
+                                            <span class="badge bg-primary">{{ carreta.local }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Documento da Carreta -->
+    {% if carreta.documento %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-file-earmark-pdf"></i> Documento</h5>
+                </div>
+                <div class="card-body">
+                    <a href="{{ carreta.documento.url }}" 
+                       target="_blank" 
+                       class="btn btn-primary">
+                        <i class="bi bi-download"></i> Baixar Documento (PDF)
+                    </a>
+                    <small class="text-muted d-block mt-2">
+                        <i class="bi bi-info-circle"></i> Clique para visualizar ou baixar o documento da carreta.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

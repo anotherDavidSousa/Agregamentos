@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if form_type == 'create' %}Novo Gestor{% else %}Editar Gestor{% endif %}{% endblock %}
+
+{% block content %}
+<h2>{% if form_type == 'create' %}Novo Gestor{% else %}Editar Gestor{% endif %}</h2>
+
+<form method="post">
+    {% csrf_token %}
+    
+    <div class="form-group">
+        <label for="nome">Nome</label>
+        <input type="text" id="nome" name="nome" 
+               value="{% if gestor %}{{ gestor.nome }}{% endif %}">
+    </div>
+    
+    <div class="actions">
+        <button type="submit" class="btn btn-success">Salvar</button>
+        <a href="{% url 'gestor_list' %}" class="btn btn-secondary">Cancelar</a>
+    </div>
+</form>
+{% endblock %}
+

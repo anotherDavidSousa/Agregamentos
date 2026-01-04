@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+
+{% block title %}Carretas - Sistema de Agregamento{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="bi bi-box"></i> Carretas</h2>
+            <p class="text-muted">Lista de carretas cadastradas</p>
+        </div>
+    </div>
+    
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-funnel"></i> Filtros</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="disponivel" class="form-label">Disponibilidade</label>
+                    <select id="disponivel" name="disponivel" class="form-select">
+                        <option value="">Todas</option>
+                        <option value="sim" {% if disponivel_filter == 'sim' %}selected{% endif %}>Disponíveis</option>
+                        <option value="nao" {% if disponivel_filter == 'nao' %}selected{% endif %}>Acopladas</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="bi bi-search"></i> Filtrar
+                    </button>
+                    <a href="{% url 'carreta_list' %}" class="btn btn-secondary">
+                        <i class="bi bi-x-circle"></i> Limpar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Tabela de Carretas -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-table"></i> Lista de Carretas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Placa</th>
+                                    <th>Marca</th>
+                                    <th>Ano</th>
+                                    <th>Tipo</th>
+                                    <th>Cavalo Acoplado</th>
+                                    <th>Polietileno</th>
+                                    <th>Lona Fácil</th>
+                                    <th>Localizador</th>
+                                    <th>Última Lavagem</th>
+                                    <th>Local</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for carreta in carretas %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'carreta_detail' carreta.pk %}" 
+                                           style="text-decoration: none; font-weight: bold; color: #0d6efd;">
+                                            {{ carreta.placa|default:"-" }}
+                                        </a>
+                                    </td>
+                                    <td>{{ carreta.marca|default:"-" }}</td>
+                                    <td>{{ carreta.ano|default:"-" }}</td>
+                                    <td>
+                                        {% if carreta.tipo %}
+                                            <span class="badge bg-info">{{ carreta.get_tipo_display }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% with cavalo=carreta.get_cavalo %}
+                                            {% if cavalo %}
+                                                <span class="badge bg-secondary">{{ cavalo.placa }}</span>
+                                            {% else %}
+                                                <span class="badge bg-success">Disponível</span>
+                                            {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                    <td>
+                                        {% if carreta.polietileno %}
+                                            {% if carreta.polietileno == 'sim' %}
+                                                <span class="badge bg-success">Sim</span>
+                                            {% elif carreta.polietileno == 'nao' %}
+                                                <span class="badge bg-danger">Não</span>
+                                            {% elif carreta.polietileno == 'metade' %}
+                                                <span class="badge bg-warning">Metade</span>
+                                            {% elif carreta.polietileno == 'danificado' %}
+                                                <span class="badge bg-danger">Danificado</span>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if carreta.lona_facil %}
+                                            {% if carreta.lona_facil == 'sim' %}
+                                                <span class="badge bg-success">Sim</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">Não</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if carreta.localizador %}
+                                            {% if carreta.localizador == 'sim' %}
+                                                <span class="badge bg-success">Sim</span>
+                                            {% elif carreta.localizador == 'nao' %}
+                                                <span class="badge bg-danger">Não</span>
+                                            {% elif carreta.localizador == 'nao_funciona' %}
+                                                <span class="badge bg-warning">Não Funciona</span>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if carreta.ultima_lavagem %}
+                                            {{ carreta.ultima_lavagem|date:"d/m/Y" }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if carreta.local %}
+                                            <span class="badge bg-info">{{ carreta.local }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="10" class="text-center text-muted py-4">
+                                        <i class="bi bi-info-circle"></i> Nenhuma carreta cadastrada.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

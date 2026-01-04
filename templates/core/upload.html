@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+
+{% block title %}Upload de Arquivos - Sistema de Agregamento{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2>Upload de Arquivos</h2>
+            <p class="text-muted">Envie arquivos Excel (.xls, .xlsx) ou CSV para processamento de CTEs e OSTs</p>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Enviar Arquivo(s)</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <!-- Upload único -->
+                        <div class="mb-3">
+                            <label class="form-label">Upload Único</label>
+                            <input type="file" name="arquivo" class="form-control" accept=".xls,.xlsx,.csv">
+                            <small class="form-text text-muted">Selecione um único arquivo</small>
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <!-- Upload múltiplo -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                Upload Múltiplo (Recomendado para vários arquivos)
+                            </label>
+                            <input type="file" name="arquivos" class="form-control" accept=".xls,.xlsx,.csv" multiple>
+                            <small class="form-text text-muted">
+                                <strong>Selecione múltiplos arquivos de uma vez!</strong><br>
+                                Segure <kbd>Ctrl</kbd> (Windows) ou <kbd>Cmd</kbd> (Mac) e clique nos arquivos desejados.<br>
+                                Ou selecione todos de uma pasta de uma vez. Todos serão processados automaticamente em paralelo.
+                            </small>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <strong>Dica:</strong> Use o upload múltiplo para processar vários arquivos de uma vez. 
+                            Cada arquivo será processado em paralelo, então você pode enviar todos e aguardar o processamento concluir.
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">
+                            Enviar e Processar
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Informações</h5>
+                </div>
+                <div class="card-body">
+                    <ul>
+                        <li>Formatos aceitos: <strong>.xls</strong>, <strong>.xlsx</strong>, <strong>.csv</strong></li>
+                        <li>O sistema detecta automaticamente se o arquivo é CTE ou OST</li>
+                        <li>Arquivos CSV são processados como CTEs</li>
+                        <li>Arquivos Excel são analisados e classificados automaticamente</li>
+                        <li>Duplicatas são automaticamente identificadas e ignoradas</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Histórico de Uploads</h5>
+                    <a href="{% url 'historico_upload' %}" class="btn btn-sm btn-light">Ver Todos</a>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Arquivo</th>
+                                    <th>Tipo</th>
+                                    <th>Status</th>
+                                    <th>Processados</th>
+                                    <th>Duplicados</th>
+                                    <th>Data</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in upload_logs %}
+                                <tr>
+                                    <td>{{ log.arquivo_nome }}</td>
+                                    <td>
+                                        {% if log.tipo_detectado %}
+                                            <span class="badge badge-info">{{ log.tipo_detectado }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if log.status == 'SUCESSO' %}
+                                            <span class="badge badge-success">{{ log.status }}</span>
+                                        {% elif log.status == 'ERRO' %}
+                                            <span class="badge badge-danger">{{ log.status }}</span>
+                                        {% else %}
+                                            <span class="badge badge-warning">{{ log.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ log.registros_processados }}</td>
+                                    <td>{{ log.registros_duplicados }}</td>
+                                    <td>{{ log.data_upload|date:"d/m/Y H:i" }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted">Nenhum upload encontrado</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

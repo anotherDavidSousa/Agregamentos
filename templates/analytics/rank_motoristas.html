@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+
+{% block title %}Ranking Motoristas - Sistema de Agregamento{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="bi bi-trophy"></i> Ranking por Placa Cavalo</h2>
+        </div>
+    </div>
+    
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-funnel"></i> Filtros</h5>
+        </div>
+        <div class="card-body">
+            <form id="filtroForm">
+                <div class="row">
+                    <div class="col-md-3">
+                        <label class="form-label">Data Início</label>
+                        <input type="date" class="form-control" id="data_inicio" name="data_inicio">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Data Fim</label>
+                        <input type="date" class="form-control" id="data_fim" name="data_fim">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Gestor</label>
+                        <select class="form-select" id="gestor_id" name="gestor_id">
+                            <option value="">Todos os Gestores</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Placa Cavalo</label>
+                        <input type="text" class="form-control" id="placa" name="placa" placeholder="Ex: ABC1234" style="text-transform: uppercase;">
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <button type="button" class="btn btn-primary" onclick="aplicarFiltros()">
+                            <i class="bi bi-search"></i> Aplicar Filtros
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="limparFiltros()">
+                            <i class="bi bi-x-circle"></i> Limpar Filtros
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Tabela de Ranking -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-table"></i> Ranking Detalhado</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="tabelaRanking">
+                            <thead>
+                                <tr>
+                                    <th>Posição</th>
+                                    <th>Placa Cavalo</th>
+                                    <th>Faturamento Total</th>
+                                    <th>Nº de Viagens</th>
+                                    <th>Gestor</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyRanking">
+                                <tr>
+                                    <td colspan="5" class="text-center">Carregando...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Carregar lista de gestores
+    fetch('/api/gestores/')
+        .then(response => response.json())
+        .then(data => {
+            const select = document.getElementById('gestor_id');
+            if (data.gestores) {
+                data.gestores.forEach(gestor => {
+                    const option = document.createElement('option');
+                    option.value = gestor.id;
+                    option.textContent = gestor.nome;
+                    select.appendChild(option);
+                });
+            }
+        })
+        .catch(error => console.error('Erro ao carregar gestores:', error));
+    
+    // Converter placa para maiúscula enquanto digita
+    document.getElementById('placa').addEventListener('input', function(e) {
+        e.target.value = e.target.value.toUpperCase();
+    });
+    
+    function aplicarFiltros() {
+        const params = new URLSearchParams();
+        const dataInicio = document.getElementById('data_inicio').value;
+        const dataFim = document.getElementById('data_fim').value;
+        const gestorId = document.getElementById('gestor_id').value;
+        const placa = document.getElementById('placa').value.trim();
+        
+        if (dataInicio) params.append('data_inicio', dataInicio);
+        if (dataFim) params.append('data_fim', dataFim);
+        if (gestorId) params.append('gestor_id', gestorId);
+        if (placa) params.append('placa', placa);
+        
+        fetch('/api/faturamento-motorista/?' + params.toString())
+            .then(response => response.json())
+            .then(data => {
+                atualizarTabela(data);
+            })
+            .catch(error => {
+                console.error('Erro ao carregar dados:', error);
+                document.getElementById('tbodyRanking').innerHTML = 
+                    '<tr><td colspan="5" class="text-center text-danger">Erro ao carregar dados</td></tr>';
+            });
+    }
+    
+    function limparFiltros() {
+        document.getElementById('data_inicio').value = '';
+        document.getElementById('data_fim').value = '';
+        document.getElementById('gestor_id').value = '';
+        document.getElementById('placa').value = '';
+        aplicarFiltros();
+    }
+    
+    function formatarMoeda(valor) {
+        return valor.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    }
+    
+    function atualizarTabela(data) {
+        const tbody = document.getElementById('tbodyRanking');
+        tbody.innerHTML = '';
+        
+        if (!data.labels || data.labels.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center">Nenhum resultado encontrado</td></tr>';
+            return;
+        }
+        
+        data.labels.forEach((placa, index) => {
+            const faturamento = data.faturamento ? data.faturamento[index] : 0;
+            const quantidade = data.quantidade ? data.quantidade[index] : 0;
+            const gestor = data.gestores ? data.gestores[index] : 'Sem Gestor';
+            const posicao = data.posicoes ? data.posicoes[index] : (index + 1);
+            
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${posicao}º</td>
+                <td><strong>${placa}</strong></td>
+                <td>R$ ${formatarMoeda(faturamento)}</td>
+                <td>${quantidade}</td>
+                <td>${gestor}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+    
+    // Carregar dados iniciais
+    aplicarFiltros();
+</script>
+{% endblock %}
+

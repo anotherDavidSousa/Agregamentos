@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if form_type == 'create' %}Novo Cavalo{% else %}Editar Cavalo{% endif %}{% endblock %}
+
+{% block content %}
+<h2>{% if form_type == 'create' %}Novo Cavalo{% else %}Editar Cavalo{% endif %}</h2>
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    
+    <div class="form-group">
+        <label for="placa">Placa</label>
+        <input type="text" id="placa" name="placa" 
+               value="{% if cavalo %}{{ cavalo.placa }}{% endif %}">
+    </div>
+    
+    <div class="form-group">
+        <label for="ano">Ano</label>
+        <input type="number" id="ano" name="ano" 
+               value="{% if cavalo %}{{ cavalo.ano }}{% endif %}">
+    </div>
+    
+    <div class="form-group">
+        <label for="cor">Cor</label>
+        <input type="text" id="cor" name="cor" 
+               value="{% if cavalo %}{{ cavalo.cor }}{% endif %}">
+    </div>
+    
+    <div class="form-group">
+        <label for="fluxo">Fluxo</label>
+        <select id="fluxo" name="fluxo">
+            <option value="">Selecione...</option>
+            <option value="escoria" {% if cavalo and cavalo.fluxo == 'escoria' %}selected{% endif %}>Escória</option>
+            <option value="minerio" {% if cavalo and cavalo.fluxo == 'minerio' %}selected{% endif %}>Minério</option>
+        </select>
+    </div>
+    
+    <div class="form-group">
+        <label for="tipo">Tipo</label>
+        <select id="tipo" name="tipo">
+            <option value="">Selecione...</option>
+            <option value="toco" {% if cavalo and cavalo.tipo == 'toco' %}selected{% endif %}>Toco</option>
+            <option value="trucado" {% if cavalo and cavalo.tipo == 'trucado' %}selected{% endif %}>Trucado</option>
+        </select>
+    </div>
+    
+    <div class="form-group">
+        <label for="situacao">Situação</label>
+        <select id="situacao" name="situacao">
+            <option value="">Selecione...</option>
+            <option value="ativo" {% if cavalo and cavalo.situacao == 'ativo' %}selected{% endif %}>Ativo</option>
+            <option value="quebrado" {% if cavalo and cavalo.situacao == 'quebrado' %}selected{% endif %}>Quebrado</option>
+            <option value="desagregado" {% if cavalo and cavalo.situacao == 'desagregado' %}selected{% endif %}>Desagregado</option>
+        </select>
+    </div>
+    
+    <div class="form-group">
+        <label for="proprietario">Proprietário</label>
+        <select id="proprietario" name="proprietario">
+            <option value="">Selecione...</option>
+            {% for proprietario in proprietarios %}
+            <option value="{{ proprietario.pk }}" 
+                    {% if cavalo and cavalo.proprietario.pk == proprietario.pk %}selected{% endif %}>
+                {{ proprietario.nome_razao_social }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <div class="form-group">
+        <label for="gestor">Gestor</label>
+        <select id="gestor" name="gestor">
+            <option value="">Selecione...</option>
+            {% for gestor in gestores %}
+            <option value="{{ gestor.pk }}" 
+                    {% if cavalo and cavalo.gestor and cavalo.gestor.pk == gestor.pk %}selected{% endif %}>
+                {{ gestor.nome }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <div class="form-group">
+        <label for="carreta">Carreta Agregada</label>
+        <select id="carreta" name="carreta">
+            <option value="">Nenhuma</option>
+            {% for carreta in carretas_disponiveis %}
+            <option value="{{ carreta.pk }}" 
+                    {% if cavalo and cavalo.carreta and cavalo.carreta.pk == carreta.pk %}selected{% endif %}>
+                {{ carreta.placa }} {% if not carreta.disponivel %}(Já acoplada){% endif %}
+            </option>
+            {% endfor %}
+        </select>
+        <p style="margin-top: 0.5rem; color: #7f8c8d; font-size: 0.875rem;">
+            Apenas carretas disponíveis são mostradas aqui.
+        </p>
+    </div>
+    
+    <div class="form-group">
+        <label for="foto">Foto</label>
+        <input type="file" id="foto" name="foto" accept="image/*">
+        {% if cavalo and cavalo.foto %}
+            <p style="margin-top: 0.5rem; color: #7f8c8d;">Foto atual: 
+                <a href="{{ cavalo.foto.url }}" target="_blank">Ver</a>
+            </p>
+        {% endif %}
+    </div>
+    
+    <div class="form-group">
+        <label for="documento">Documento</label>
+        <input type="file" id="documento" name="documento">
+        {% if cavalo and cavalo.documento %}
+            <p style="margin-top: 0.5rem; color: #7f8c8d;">Documento atual: 
+                <a href="{{ cavalo.documento.url }}" target="_blank">Ver</a>
+            </p>
+        {% endif %}
+    </div>
+    
+    <div class="form-group">
+        <label for="observacoes">Observações</label>
+        <textarea id="observacoes" name="observacoes">{% if cavalo %}{{ cavalo.observacoes }}{% endif %}</textarea>
+    </div>
+    
+    <div class="actions">
+        <button type="submit" class="btn btn-success">Salvar</button>
+        <a href="{% if cavalo %}{% url 'cavalo_detail' cavalo.pk %}{% else %}{% url 'cavalo_list' %}{% endif %}" 
+           class="btn btn-secondary">Cancelar</a>
+    </div>
+</form>
+{% endblock %}
+
