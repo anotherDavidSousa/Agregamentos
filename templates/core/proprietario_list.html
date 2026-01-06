@@ -22,6 +22,7 @@
                         <table class="table table-hover">
                             <thead>
                                 <tr>
+                                    <th>Código</th>
                                     <th>Nome/Razão Social</th>
                                     <th>Tipo</th>
                                     <th>Cavalo 1</th>
@@ -34,6 +35,13 @@
                             <tbody>
                                 {% for item in dados_parceiros %}
                                 <tr>
+                                    <td>
+                                        {% if item.parceiro.codigo %}
+                                            <span class="badge bg-primary">{{ item.parceiro.codigo }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
                                     <td><strong>{{ item.parceiro.nome_razao_social|default:"-" }}</strong></td>
                                     <td>
                                         {% if item.parceiro.tipo == 'PF' %}
@@ -89,7 +97,7 @@
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="7" class="text-center text-muted py-4">
+                                    <td colspan="8" class="text-center text-muted py-4">
                                         <i class="bi bi-info-circle"></i> Nenhum parceiro ativo com cavalos agregados encontrado.
                                     </td>
                                 </tr>
