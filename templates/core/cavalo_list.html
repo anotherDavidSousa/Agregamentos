@@ -138,20 +138,21 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
 <script>
     $(document).ready(function() {
-        $('#tabelaCavalos').DataTable({
+        var table = $('#tabelaCavalos').DataTable({
             language: {
                 url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json'
             },
             order: [[0, 'asc']], // Ordenar por Placa por padrão
             pageLength: 25,
-            autoWidth: true,
+            autoWidth: false,
+            responsive: true,
             columnDefs: [
-                { orderable: true, targets: '_all' }
+                { orderable: true, targets: '_all' },
+                { width: 'auto', targets: '_all' }
             ]
         });
     });
