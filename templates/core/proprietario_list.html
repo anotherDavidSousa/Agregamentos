@@ -2,6 +2,10 @@
 
 {% block title %}Parceiros - Sistema de Agregamento{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
     <div class="row mb-4">
@@ -19,7 +23,7 @@
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table id="tabelaParceiros" class="table table-hover" style="width:100%">
                             <thead>
                                 <tr>
                                     <th>Código</th>
@@ -53,22 +57,31 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        {% if item.cavalo_1 %}
-                                            <span class="badge bg-secondary">{{ item.cavalo_1 }}</span>
+                                        {% if item.cavalo_1.placa %}
+                                            <a href="{% url 'cavalo_detail' item.cavalo_1.id %}" 
+                                               style="text-decoration: none; font-weight: bold; color: #0d6efd;">
+                                                {{ item.cavalo_1.placa }}
+                                            </a>
                                         {% else %}
                                             <span class="text-muted">-</span>
                                         {% endif %}
                                     </td>
                                     <td>
-                                        {% if item.cavalo_2 %}
-                                            <span class="badge bg-secondary">{{ item.cavalo_2 }}</span>
+                                        {% if item.cavalo_2.placa %}
+                                            <a href="{% url 'cavalo_detail' item.cavalo_2.id %}" 
+                                               style="text-decoration: none; font-weight: bold; color: #0d6efd;">
+                                                {{ item.cavalo_2.placa }}
+                                            </a>
                                         {% else %}
                                             <span class="text-muted">-</span>
                                         {% endif %}
                                     </td>
                                     <td>
-                                        {% if item.cavalo_3 %}
-                                            <span class="badge bg-secondary">{{ item.cavalo_3 }}</span>
+                                        {% if item.cavalo_3.placa %}
+                                            <a href="{% url 'cavalo_detail' item.cavalo_3.id %}" 
+                                               style="text-decoration: none; font-weight: bold; color: #0d6efd;">
+                                                {{ item.cavalo_3.placa }}
+                                            </a>
                                         {% else %}
                                             <span class="text-muted">-</span>
                                         {% endif %}
@@ -110,4 +123,25 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('#tabelaParceiros').DataTable({
+            language: {
+                url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json'
+            },
+            order: [[1, 'asc']], // Ordenar por Nome/Razão Social por padrão
+            pageLength: 25,
+            autoWidth: true,
+            columnDefs: [
+                { orderable: true, targets: '_all' }
+            ]
+        });
+    });
+</script>
 {% endblock %}

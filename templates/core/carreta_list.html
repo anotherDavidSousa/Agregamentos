@@ -2,6 +2,10 @@
 
 {% block title %}Carretas - Sistema de Agregamento{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
     <div class="row mb-4">
@@ -47,7 +51,7 @@
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table id="tabelaCarretas" class="table table-hover" style="width:100%">
                             <thead>
                                 <tr>
                                     <th>Placa</th>
@@ -83,7 +87,10 @@
                                     <td>
                                         {% with cavalo=carreta.get_cavalo %}
                                             {% if cavalo %}
-                                                <span class="badge bg-secondary">{{ cavalo.placa }}</span>
+                                                <a href="{% url 'cavalo_detail' cavalo.pk %}" 
+                                                   style="text-decoration: none; font-weight: bold; color: #0d6efd;">
+                                                    {{ cavalo.placa }}
+                                                </a>
                                             {% else %}
                                                 <span class="badge bg-success">Disponível</span>
                                             {% endif %}
@@ -162,4 +169,25 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('#tabelaCarretas').DataTable({
+            language: {
+                url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json'
+            },
+            order: [[0, 'asc']], // Ordenar por Placa por padrão
+            pageLength: 25,
+            autoWidth: true,
+            columnDefs: [
+                { orderable: true, targets: '_all' }
+            ]
+        });
+    });
+</script>
 {% endblock %}

@@ -94,10 +94,18 @@ def proprietario_list(request):
         
         # Só adicionar se tiver pelo menos um cavalo com carreta
         if cavalos_com_carreta:
-            placas = [cavalo.placa for cavalo in cavalos_com_carreta if cavalo.placa]
-            # Preencher até 3 placas
-            while len(placas) < 3:
-                placas.append('')
+            # Preencher até 3 cavalos com placa e ID
+            cavalos_data = []
+            for cavalo in cavalos_com_carreta[:3]:
+                if cavalo.placa:
+                    cavalos_data.append({
+                        'placa': cavalo.placa,
+                        'id': cavalo.pk
+                    })
+            
+            # Preencher até 3 cavalos
+            while len(cavalos_data) < 3:
+                cavalos_data.append({'placa': '', 'id': None})
             
             # Limpar WhatsApp para link
             whatsapp_limpo = ''
@@ -106,9 +114,9 @@ def proprietario_list(request):
             
             dados_parceiros.append({
                 'parceiro': parceiro,
-                'cavalo_1': placas[0] if len(placas) > 0 else '',
-                'cavalo_2': placas[1] if len(placas) > 1 else '',
-                'cavalo_3': placas[2] if len(placas) > 2 else '',
+                'cavalo_1': cavalos_data[0],
+                'cavalo_2': cavalos_data[1],
+                'cavalo_3': cavalos_data[2],
                 'whatsapp_limpo': whatsapp_limpo,
             })
     

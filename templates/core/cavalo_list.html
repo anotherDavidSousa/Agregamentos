@@ -2,6 +2,10 @@
 
 {% block title %}Cavalos - Sistema de Agregamento{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
     <div class="row mb-4">
@@ -48,16 +52,16 @@
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table id="tabelaCavalos" class="table table-hover" style="width:100%">
                             <thead>
                                 <tr>
                                     <th>Placa</th>
                                     <th>Ano</th>
+                                    <th>Tipo</th>
                                     <th>Motorista</th>
                                     <th>Carreta</th>
+                                    <th>Tipo da Carreta</th>
                                     <th>Fluxo</th>
-                                    <th>Gestor</th>
-                                    <th>Histórico</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -71,15 +75,37 @@
                                     </td>
                                     <td>{{ cavalo.ano|default:"-" }}</td>
                                     <td>
+                                        {% if cavalo.tipo == 'toco' %}
+                                            <span class="badge bg-info">Toco</span>
+                                        {% elif cavalo.tipo == 'trucado' %}
+                                            <span class="badge bg-primary">Trucado</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
                                         {% if cavalo.motorista %}
-                                            <span class="badge bg-info">{{ cavalo.motorista.nome }}</span>
+                                            <a href="{% url 'motorista_detail' cavalo.motorista.pk %}" 
+                                               style="text-decoration: none; font-weight: bold; color: #0d6efd;">
+                                                {{ cavalo.motorista.nome }}
+                                            </a>
                                         {% else %}
                                             <span class="text-muted">-</span>
                                         {% endif %}
                                     </td>
                                     <td>
                                         {% if cavalo.carreta %}
-                                            <span class="badge bg-secondary">{{ cavalo.carreta.placa }}</span>
+                                            <a href="{% url 'carreta_detail' cavalo.carreta.pk %}" 
+                                               style="text-decoration: none; font-weight: bold; color: #0d6efd;">
+                                                {{ cavalo.carreta.placa }}
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if cavalo.carreta and cavalo.carreta.tipo %}
+                                            <span class="badge bg-secondary">{{ cavalo.carreta.get_tipo_display }}</span>
                                         {% else %}
                                             <span class="text-muted">-</span>
                                         {% endif %}
@@ -92,19 +118,6 @@
                                         {% else %}
                                             <span class="text-muted">-</span>
                                         {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if cavalo.gestor %}
-                                            <span class="badge bg-primary">{{ cavalo.gestor.nome }}</span>
-                                        {% else %}
-                                            <span class="text-muted">-</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <a href="{% url 'cavalo_detail' cavalo.pk %}" 
-                                           class="btn btn-sm btn-secondary">
-                                            <i class="bi bi-eye"></i> Ver
-                                        </a>
                                     </td>
                                 </tr>
                                 {% empty %}
@@ -122,4 +135,25 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('#tabelaCavalos').DataTable({
+            language: {
+                url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json'
+            },
+            order: [[0, 'asc']], // Ordenar por Placa por padrão
+            pageLength: 25,
+            autoWidth: true,
+            columnDefs: [
+                { orderable: true, targets: '_all' }
+            ]
+        });
+    });
+</script>
 {% endblock %}
