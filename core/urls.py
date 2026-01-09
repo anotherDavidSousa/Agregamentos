@@ -2,6 +2,11 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    # Autenticação
+    path('login/', views.custom_login, name='login'),
+    path('logout/', views.custom_logout, name='logout'),
+    
+    # Página inicial
     path('', views.index, name='index'),
     
     # Proprietários

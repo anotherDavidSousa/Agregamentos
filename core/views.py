@@ -4,6 +4,8 @@ from django.core.paginator import Paginator
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.views import LoginView
 from django.views.generic import FormView
 from django.contrib import messages
 from django.core.files.storage import default_storage
@@ -17,6 +19,36 @@ from .forms import UploadArquivoForm
 from .processadores import ProcessadorArquivos
 
 
+def custom_login(request):
+    """View customizada de login"""
+    if request.user.is_authenticated:
+        return redirect('index')
+    
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            messages.success(request, f'Bem-vindo, {user.username}!')
+            next_url = request.GET.get('next', 'index')
+            return redirect(next_url)
+        else:
+            messages.error(request, 'Usuário ou senha incorretos.')
+    
+    return render(request, 'registration/login.html')
+
+
+@login_required
+def custom_logout(request):
+    """View customizada de logout"""
+    logout(request)
+    messages.success(request, 'Você foi desconectado com sucesso.')
+    return redirect('login')
+
+
+@login_required
 def index(request):
     """Página inicial com estatísticas"""
     # Parceiros ativos (proprietários com status ativo)
@@ -65,6 +97,7 @@ def index(request):
 
 
 # Views para Proprietários (Parceiros)
+@login_required
 def proprietario_list(request):
     # Primeiro, atualizar status de todos os parceiros
     proprietarios = Proprietario.objects.all()
@@ -125,6 +158,7 @@ def proprietario_list(request):
     })
 
 
+@login_required
 def proprietario_detail(request, pk):
     proprietario = get_object_or_404(Proprietario, pk=pk)
     cavalos = proprietario.cavalos.all()
@@ -134,6 +168,7 @@ def proprietario_detail(request, pk):
     })
 
 
+@login_required
 def proprietario_create(request):
     if request.method == 'POST':
         # Processar formulário
@@ -160,6 +195,7 @@ def proprietario_create(request):
     return render(request, 'core/proprietario_form.html', {'form_type': 'create'})
 
 
+@login_required
 def proprietario_edit(request, pk):
     proprietario = get_object_or_404(Proprietario, pk=pk)
     if request.method == 'POST':
@@ -183,6 +219,7 @@ def proprietario_edit(request, pk):
 
 
 # Views para Gestores
+@login_required
 def gestor_list(request):
     from django.db.models import Q, Count, Sum
     from datetime import datetime, date
@@ -375,6 +412,7 @@ def gestor_list(request):
     })
 
 
+@login_required
 def gestor_create(request):
     if request.method == 'POST':
         nome = request.POST.get('nome', '')
@@ -383,6 +421,7 @@ def gestor_create(request):
     return render(request, 'core/gestor_form.html', {'form_type': 'create'})
 
 
+@login_required
 def gestor_edit(request, pk):
     gestor = get_object_or_404(Gestor, pk=pk)
     if request.method == 'POST':
@@ -396,6 +435,7 @@ def gestor_edit(request, pk):
 
 
 # Views para Cavalos
+@login_required
 def cavalo_list(request):
     cavalos = Cavalo.objects.select_related('motorista', 'carreta', 'gestor').all()
     situacao_filter = request.GET.get('situacao', '')
@@ -407,6 +447,7 @@ def cavalo_list(request):
     })
 
 
+@login_required
 def cavalo_detail(request, pk):
     cavalo = get_object_or_404(Cavalo, pk=pk)
     logs = cavalo.logs.all()[:10]  # Últimos 10 logs
@@ -416,6 +457,7 @@ def cavalo_detail(request, pk):
     })
 
 
+@login_required
 def cavalo_create(request):
     if request.method == 'POST':
         cavalo = Cavalo.objects.create(
@@ -449,6 +491,7 @@ def cavalo_create(request):
     })
 
 
+@login_required
 def cavalo_edit(request, pk):
     cavalo = get_object_or_404(Cavalo, pk=pk)
     if request.method == 'POST':
@@ -502,6 +545,7 @@ def cavalo_edit(request, pk):
 
 
 # Views para Carretas
+@login_required
 def carreta_list(request):
     carretas = Carreta.objects.select_related().all()
     disponivel_filter = request.GET.get('disponivel', '')
@@ -516,11 +560,13 @@ def carreta_list(request):
     })
 
 
+@login_required
 def carreta_detail(request, pk):
     carreta = get_object_or_404(Carreta, pk=pk)
     return render(request, 'core/carreta_detail.html', {'carreta': carreta})
 
 
+@login_required
 def carreta_create(request):
     if request.method == 'POST':
         # Processar data de lavagem
@@ -557,6 +603,7 @@ def carreta_create(request):
     return render(request, 'core/carreta_form.html', {'form_type': 'create'})
 
 
+@login_required
 def carreta_edit(request, pk):
     carreta = get_object_or_404(Carreta, pk=pk)
     if request.method == 'POST':
@@ -597,11 +644,13 @@ def carreta_edit(request, pk):
 
 
 # Views para Motoristas
+@login_required
 def motorista_list(request):
     motoristas = Motorista.objects.select_related('cavalo', 'cavalo__carreta').filter(cavalo__isnull=False)
     return render(request, 'core/motorista_list.html', {'motoristas': motoristas})
 
 
+@login_required
 def motorista_create(request):
     if request.method == 'POST':
         motorista = Motorista.objects.create(
@@ -625,6 +674,7 @@ def motorista_create(request):
     })
 
 
+@login_required
 def motorista_detail(request, pk):
     motorista = get_object_or_404(Motorista.objects.select_related('cavalo', 'cavalo__carreta'), pk=pk)
     return render(request, 'core/motorista_detail.html', {
@@ -632,6 +682,7 @@ def motorista_detail(request, pk):
     })
 
 
+@login_required
 def motorista_edit(request, pk):
     motorista = get_object_or_404(Motorista, pk=pk)
     if request.method == 'POST':
@@ -656,6 +707,7 @@ def motorista_edit(request, pk):
 
 
 # Views para Logs
+@login_required
 def log_list(request):
     logs = LogCarreta.objects.all()
     
@@ -812,6 +864,7 @@ class UploadView(LoginRequiredMixin, FormView):
         return context
 
 
+@login_required
 @login_required
 def historico_upload_view(request):
     """View para histórico completo de uploads"""

@@ -239,8 +239,8 @@
             </li>
             {% endif %}
             {% if user.is_authenticated %}
-            <li style="margin-top: 30px;">
-                <a href="{% url 'admin:logout' %}">
+            <li style="margin-top: 30px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
+                <a href="{% url 'logout' %}">
                     <i class="bi bi-box-arrow-right"></i> Sair
                 </a>
             </li>
