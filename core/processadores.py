@@ -74,6 +74,7 @@ class ProcessadorCTECSV:
             return {}
         
         # Pular linhas que são totais (contém "TOTAL GERAL" ou "TOTAL DO GRUPO")
+        # As linhas de dados reais começam com "Parâmetros" na coluna 0, mas isso é normal
         primeiro_valor = str(valores[0]).strip() if len(valores) > 0 else ''
         ultimo_valor = str(valores[-1]).strip() if len(valores) > 0 else ''
         if 'TOTAL GERAL' in primeiro_valor or 'TOTAL GERAL' in ultimo_valor:
@@ -84,13 +85,14 @@ class ProcessadorCTECSV:
             return {}
         
         # Extrair Filial, Série e CTRC da coluna 18 (índice 18 no array do pandas)
+        # Formato: "19 / 19 / 6.296"
         filial_serie_ctrc = str(valores[18]).strip() if len(valores) > 18 and str(valores[18]) != 'nan' else ''
         if filial_serie_ctrc and '/' in filial_serie_ctrc:
             partes = [p.strip() for p in filial_serie_ctrc.split('/')]
             if len(partes) >= 3:
                 cte['filial'] = partes[0]
                 cte['serie'] = partes[1]
-                cte['ctrc'] = partes[2].replace('.', '')
+                cte['ctrc'] = partes[2].replace('.', '')  # Remove pontos do número
             else:
                 cte['filial'] = ''
                 cte['serie'] = ''
@@ -104,10 +106,13 @@ class ProcessadorCTECSV:
         data_hora_raw = valores[20] if len(valores) > 20 else None
         if pd.notna(data_hora_raw) and str(data_hora_raw).strip() and str(data_hora_raw).strip().lower() != 'nan':
             data_hora = str(data_hora_raw).strip()
+            # Formato: "01/11/25  10:39" ou "01/11/25" - converter para "01/11/2025"
             data_str = data_hora.split()[0] if ' ' in data_hora else data_hora
+            # Converter de DD/MM/YY para DD/MM/YYYY
             if '/' in data_str and len(data_str.split('/')) == 3:
                 partes = data_str.split('/')
                 if len(partes[2]) == 2:
+                    # Assumir anos 2000-2099 (anos de 00-49 são 2000-2049, 50-99 são 1950-1999)
                     ano_int = int(partes[2])
                     ano = f"20{partes[2]}" if ano_int < 50 else f"19{partes[2]}"
                     data_str = f"{partes[0]}/{partes[1]}/{ano}"
@@ -127,11 +132,15 @@ class ProcessadorCTECSV:
         # Tipo Frota - coluna 24 (índice 24)
         cte['tipo_frota'] = str(valores[24]).strip() if len(valores) > 24 and str(valores[24]) != 'nan' else ''
         
+        # F. S/ICMS (Frete sem ICMS) - coluna 25 (índice 25) - não usado diretamente
+        
         # Pedágio - coluna 26 (índice 26)
         pedagio_raw = valores[26] if len(valores) > 26 else None
         if pedagio_raw is not None and str(pedagio_raw).strip() and str(pedagio_raw).strip().lower() not in ['nan', 'none', '']:
             pedagio_str = str(pedagio_raw).strip()
+            # Garantir formato com vírgula
             if '.' in pedagio_str and ',' not in pedagio_str:
+                # Se tem ponto mas não vírgula, pode ser formato americano (ex: 77.4)
                 partes_ponto = pedagio_str.split('.')
                 if len(partes_ponto) == 2:
                     cte['pedagio'] = pedagio_str.replace('.', ',')
@@ -140,26 +149,38 @@ class ProcessadorCTECSV:
             elif ',' in pedagio_str:
                 cte['pedagio'] = pedagio_str
             else:
+                # Número inteiro, adicionar ,00
                 cte['pedagio'] = f"{pedagio_str},00"
         else:
             cte['pedagio'] = '0,00'
+        
+        # ICMS - coluna 27 (índice 27) - não usado no modelo
         
         # Total Frete - coluna 28 (índice 28)
         total_frete_raw = valores[28] if len(valores) > 28 else None
         if total_frete_raw is not None and str(total_frete_raw).strip() and str(total_frete_raw).strip().lower() not in ['nan', 'none', '']:
             total_frete_str = str(total_frete_raw).strip()
+            # Garantir formato com vírgula
             if '.' in total_frete_str and ',' not in total_frete_str:
+                # Se tem ponto mas não vírgula, pode ser formato americano (ex: "5.218.40" ou "5218.40")
+                # Remover pontos de milhar se houver múltiplos pontos
                 partes_ponto = total_frete_str.split('.')
                 if len(partes_ponto) == 2:
+                    # Apenas ponto decimal: "5218.40" -> "5218,40"
                     cte['total_frete'] = total_frete_str.replace('.', ',')
                 else:
+                    # Múltiplos pontos (milhar): "5.218.40" -> "5218,40"
                     cte['total_frete'] = total_frete_str.replace('.', '', len(partes_ponto) - 2).replace('.', ',')
             elif ',' in total_frete_str:
+                # Já tem vírgula, manter
                 cte['total_frete'] = total_frete_str
             else:
+                # Número inteiro, adicionar ,00
                 cte['total_frete'] = f"{total_frete_str},00"
         else:
             cte['total_frete'] = '0,00'
+        
+        # Serie Nota - coluna 29 (índice 29) - não usado
         
         # Nota Fiscal - coluna 30 (índice 30)
         nota_raw = valores[30] if len(valores) > 30 else None
@@ -175,7 +196,9 @@ class ProcessadorCTECSV:
         tarifa_raw = valores[31] if len(valores) > 31 else None
         if tarifa_raw is not None and str(tarifa_raw).strip() and str(tarifa_raw).strip().lower() not in ['nan', 'none', '']:
             tarifa_str = str(tarifa_raw).strip()
+            # Garantir formato com vírgula
             if '.' in tarifa_str and ',' not in tarifa_str:
+                # Se tem ponto mas não vírgula
                 partes_ponto = tarifa_str.split('.')
                 if len(partes_ponto) == 2:
                     cte['tarifa'] = tarifa_str.replace('.', ',')
@@ -184,13 +207,16 @@ class ProcessadorCTECSV:
             elif ',' in tarifa_str:
                 cte['tarifa'] = tarifa_str
             else:
+                # Número inteiro, adicionar ,00
                 cte['tarifa'] = f"{tarifa_str},00"
         else:
             cte['tarifa'] = '0,00'
         
         # Remetente e Destinatário - coluna 2 (índice 2)
+        # Formato: "REMETENTE : NOME     DESTINATÁRIO : NOME"
         rem_dest = str(valores[2]).strip() if len(valores) > 2 else ''
         if rem_dest:
+            # Separar remetente e destinatário
             if 'DESTINATÁRIO :' in rem_dest or 'DESTINATÁRIO:' in rem_dest:
                 partes = re.split(r'DESTINATÁRIO\s*:', rem_dest, flags=re.IGNORECASE)
                 if len(partes) >= 2:
@@ -212,10 +238,20 @@ class ProcessadorCTECSV:
         cte['filial_serie_ctrc'] = f"{cte.get('filial', '')}/{cte.get('serie', '')}/{cte.get('ctrc', '')}"
         
         return cte
+    
+    def _extrair_valor(self, row_dict, possiveis_chaves):
+        """Extrai valor do dicionário tentando várias chaves possíveis"""
+        for chave in possiveis_chaves:
+            for key in row_dict.keys():
+                if chave in key:
+                    valor = row_dict[key]
+                    if pd.notna(valor) and str(valor).strip():
+                        return str(valor).strip()
+        return ''
 
 
 class ProcessadorOST:
-    """Processador para arquivos Excel de OSTs (Ordem de Serviço de Transporte)"""
+    """Processador para arquivos Excel de OSTs (Ordem de Serviço de Transporte) - Versão Simplificada"""
     
     def __init__(self):
         self.osts = []
@@ -224,17 +260,17 @@ class ProcessadorOST:
         self.padrao_filial_serie = re.compile(r'Filial:(\d+)\s*/\s*Série:(\w+)\s*/\s*Nº:([0-9.]+)')
         self.padrao_data = re.compile(r'(\d{2}/\d{2}/\d{4})')
         
-        # Mapeamento baseado na estrutura do arquivo
+        # Mapeamento baseado na estrutura do arquivo (simplificado)
         self.estrutura_ost = {
-            'filial_serie_numero': 1,
-            'data': 5,
-            'remetente': 13,
-            'destinatario': 20,
-            'motorista': 34,
-            'cavalo': 37,
-            'carreta': 38,
-            'total_frete': 44,
-            'pedagio': 46,
+            'filial_serie_numero': 1,    # Col B - "Filial:25 / Série:OST / Nº:1"
+            'data': 5,                   # Col F - "Data : 01/08/2025 10:54:00"
+            'remetente': 13,             # Col N - "Remetente : EMPRESA"
+            'destinatario': 20,          # Col U - "Destinatário : EMPRESA" 
+            'motorista': 34,             # Col AI - "Motorista : NOME"
+            'cavalo': 37,                # Col AL - placa do cavalo
+            'carreta': 38,               # Col AM - placa da carreta
+            'total_frete': 44,           # Col AS - "Total Frete: 577,72"
+            'pedagio': 46,               # Col AO - "Pedágio: 0,00"
         }
     
     def processar_arquivo(self, arquivo_path):
@@ -242,11 +278,13 @@ class ProcessadorOST:
         try:
             print(f"🚛 Processando arquivo OST: {os.path.basename(arquivo_path)}")
             
+            # Ler arquivo com diferentes engines
             df = self._ler_arquivo_excel(arquivo_path)
             dados = df.fillna('').values.tolist()
             
             print(f"📊 Arquivo carregado: {len(dados)} linhas encontradas")
             
+            # Encontrar e processar OSTs
             linhas_ost = self._encontrar_linhas_ost(dados)
             print(f"🔍 Encontradas {len(linhas_ost)} OSTs")
             
@@ -294,30 +332,38 @@ class ProcessadorOST:
         return linhas_ost
     
     def _processar_ost_individual(self, dados, linha_ost):
-        """Processa uma OST individual"""
+        """Processa uma OST individual extraindo apenas os campos básicos"""
         try:
             linha = dados[linha_ost]
             
+            # Garantir que a linha tenha elementos suficientes
             while len(linha) <= max(self.estrutura_ost.values()):
                 linha.append('')
             
+            # Extrair filial, série e número
             filial, serie, numero_ost = self._extrair_filial_serie_numero(
                 linha[self.estrutura_ost['filial_serie_numero']]
             )
             
+            # Extrair data
             data = self._extrair_data(linha[self.estrutura_ost['data']])
             
+            # Extrair remetente e destinatário
             remetente = self._limpar_campo(linha[self.estrutura_ost['remetente']], 'Remetente :')
             destinatario = self._limpar_campo(linha[self.estrutura_ost['destinatario']], 'Destinatário :')
             
+            # Extrair motorista
             motorista = self._limpar_campo(linha[self.estrutura_ost['motorista']], 'Motorista :')
             
+            # Extrair placas
             cavalo = self._limpar_campo(linha[self.estrutura_ost['cavalo']])
             carreta = self._limpar_campo(linha[self.estrutura_ost['carreta']])
             
+            # Extrair valores financeiros
             total_frete = self._extrair_valor(linha[self.estrutura_ost['total_frete']], 'Total Frete:')
             pedagio = self._extrair_valor(linha[self.estrutura_ost['pedagio']], 'Pedágio:')
             
+            # Criar objeto OST
             ost = {
                 'filial': filial,
                 'serie': serie,
@@ -330,7 +376,7 @@ class ProcessadorOST:
                 'destinatario': destinatario,
                 'remetente': remetente,
                 'total_frete': total_frete,
-                'tarifa': '0,00',
+                'tarifa': '0,00',  # Não extraído do arquivo original
                 'filial_serie_ost': f"{filial}/{serie}/{numero_ost}"
             }
             
@@ -392,6 +438,7 @@ class ProcessadorOST:
         
         valor_str = str(valor).strip().replace(' ', '')
         
+        # Se já tem vírgula, garantir duas casas decimais
         if ',' in valor_str:
             partes = valor_str.split(',')
             if len(partes) == 2:
@@ -401,6 +448,7 @@ class ProcessadorOST:
                     valor_str = f"{partes[0]},{partes[1][:2]}"
             return valor_str
         
+        # Se tem ponto, substituir por vírgula
         if '.' in valor_str:
             valor_str = valor_str.replace('.', ',')
             partes = valor_str.split(',')
@@ -411,6 +459,7 @@ class ProcessadorOST:
                     valor_str = f"{partes[0]},{partes[1][:2]}"
             return valor_str
         
+        # Se é número inteiro, adicionar ,00
         if valor_str.isdigit():
             return f"{valor_str},00"
         
@@ -519,8 +568,8 @@ class ProcessadorArquivos:
         
         while tentativas < max_retries:
             try:
+                # Buscar cavalo ativo que não esteja desagregado
                 with _db_lock:
-                    # Buscar cavalo ativo que não esteja desagregado
                     cavalo = Cavalo.objects.filter(
                         placa=placa_cavalo,
                         situacao='ativo'
@@ -534,7 +583,7 @@ class ProcessadorArquivos:
                 if cavalo and cavalo.gestor:
                     # Verificar se está desagregado
                     if cavalo.situacao == 'desagregado':
-                        return None
+                        return None  # Não retornar gestor se estiver desagregado
                     return cavalo.gestor
                 
                 return None
@@ -561,14 +610,12 @@ class ProcessadorArquivos:
             extensao = Path(arquivo_path).suffix.lower()
             
             if tipo == 'CTE':
-                # CTE pode ser CSV ou Excel, mas ambos usam ProcessadorCTECSV
-                # Para Excel, precisamos converter para CSV temporariamente ou ler diretamente
                 if extensao == '.csv':
                     processador_cte = ProcessadorCTECSV()
                     ctes = processador_cte.processar_arquivo(arquivo_path)
                     registros_salvos, registros_duplicados = self._salvar_ctes_no_django(ctes)
                 else:
-                    # Para Excel, tentar ler como CSV usando pandas
+                    # CTE em Excel - converter para CSV temporário
                     try:
                         # Ler Excel e converter para CSV temporário
                         df = pd.read_excel(arquivo_path, engine='openpyxl' if extensao == '.xlsx' else 'xlrd', dtype=str)
@@ -580,7 +627,8 @@ class ProcessadorArquivos:
                             registros_salvos, registros_duplicados = self._salvar_ctes_no_django(ctes)
                             os.unlink(tmp.name)
                     except Exception as e:
-                        # Se falhar, tentar ler diretamente como CSV
+                        # Se falhar, tentar ler diretamente como CSV (pode funcionar em alguns casos)
+                        print(f"⚠️  Erro ao converter Excel para CSV: {e}, tentando processar diretamente...")
                         processador_cte = ProcessadorCTECSV()
                         ctes = processador_cte.processar_arquivo(arquivo_path)
                         registros_salvos, registros_duplicados = self._salvar_ctes_no_django(ctes)
@@ -607,6 +655,7 @@ class ProcessadorArquivos:
         registros_salvos = 0
         registros_duplicados = 0
         
+        # Preparar lista de documentos para inserção em lote
         documentos_para_inserir = []
         
         for cte in ctes:
@@ -643,6 +692,7 @@ class ProcessadorArquivos:
                 print(f"Erro ao preparar CTE: {str(e)}")
                 continue
         
+        # Inserir em lotes com retry
         if documentos_para_inserir:
             registros_salvos = self._bulk_insert_com_retry(documentos_para_inserir, batch_size=100)
         
@@ -653,6 +703,7 @@ class ProcessadorArquivos:
         registros_salvos = 0
         registros_duplicados = 0
         
+        # Preparar lista de documentos para inserção em lote
         documentos_para_inserir = []
         
         for ost in osts:
@@ -687,15 +738,28 @@ class ProcessadorArquivos:
                 print(f"Erro ao preparar OST: {str(e)}")
                 continue
         
+        # Inserir em lotes com retry
         if documentos_para_inserir:
             registros_salvos = self._bulk_insert_com_retry(documentos_para_inserir, batch_size=100)
         
         return registros_salvos, registros_duplicados
     
     def _bulk_insert_com_retry(self, documentos, batch_size=100, max_retries=5, retry_delay=0.1):
-        """Insere documentos em lotes com retry logic para lidar com database locks do SQLite"""
+        """
+        Insere documentos em lotes com retry logic para lidar com database locks do SQLite.
+        
+        Args:
+            documentos: Lista de objetos DocumentoTransporte a serem inseridos
+            batch_size: Tamanho do lote para inserção
+            max_retries: Número máximo de tentativas
+            retry_delay: Delay inicial entre tentativas (aumenta exponencialmente)
+        
+        Returns:
+            Número de registros salvos com sucesso
+        """
         registros_salvos = 0
         
+        # Dividir em lotes
         for i in range(0, len(documentos), batch_size):
             lote = documentos[i:i + batch_size]
             salvo = False
@@ -704,8 +768,11 @@ class ProcessadorArquivos:
             
             while not salvo and tentativas < max_retries:
                 try:
+                    # Usar lock para serializar escritas
                     with _db_lock:
+                        # Usar transaction para garantir atomicidade
                         with transaction.atomic():
+                            # Bulk create é mais eficiente que save() individual
                             DocumentoTransporte.objects.bulk_create(lote, ignore_conflicts=True)
                             registros_salvos += len(lote)
                             salvo = True
@@ -714,23 +781,29 @@ class ProcessadorArquivos:
                     tentativas += 1
                     error_msg = str(e).lower()
                     
+                    # Se for lock, tentar novamente
                     if 'locked' in error_msg or 'database is locked' in error_msg:
                         if tentativas < max_retries:
+                            # Backoff exponencial
                             time.sleep(delay)
-                            delay *= 2
+                            delay *= 2  # Aumenta o delay exponencialmente
                             print(f"⚠️  Database locked, tentativa {tentativas}/{max_retries}...")
                         else:
                             print(f"❌ Erro ao salvar lote após {max_retries} tentativas: {str(e)}")
+                            # Tentar salvar um por um como fallback
                             registros_salvos += self._salvar_individual_com_retry(lote)
                             salvo = True
                     else:
+                        # Outro tipo de erro, não tentar novamente
                         print(f"❌ Erro ao salvar lote: {str(e)}")
-                        salvo = True
+                        salvo = True  # Para não ficar tentando infinitamente
         
         return registros_salvos
     
     def _salvar_individual_com_retry(self, documentos, max_retries=3):
-        """Salva documentos individualmente com retry (fallback quando bulk falha)"""
+        """
+        Salva documentos individualmente com retry (fallback quando bulk falha).
+        """
         salvos = 0
         for doc in documentos:
             tentativas = 0
@@ -752,7 +825,7 @@ class ProcessadorArquivos:
                         delay *= 1.5
                     else:
                         print(f"Erro ao salvar documento individual: {str(e)}")
-                        salvo = True
+                        salvo = True  # Parar de tentar
         
         return salvos
     
@@ -786,17 +859,22 @@ class ProcessadorArquivos:
             if not data_str or data_str.lower() == 'nan':
                 return None
             
+            # Tentar formato DD/MM/YYYY
             if '/' in data_str:
-                data_parte = data_str.split()[0]
+                data_parte = data_str.split()[0]  # Pegar apenas a parte da data (sem hora)
+                # Verificar se já está em formato completo DD/MM/YYYY
                 partes = data_parte.split('/')
                 if len(partes) == 3:
                     if len(partes[2]) == 4:
+                        # Formato DD/MM/YYYY
                         return datetime.strptime(data_parte, '%d/%m/%Y').date()
                     elif len(partes[2]) == 2:
+                        # Formato DD/MM/YY - converter para YYYY
                         ano_int = int(partes[2])
                         ano = f"20{partes[2]}" if ano_int < 50 else f"19{partes[2]}"
                         data_completa = f"{partes[0]}/{partes[1]}/{ano}"
                         return datetime.strptime(data_completa, '%d/%m/%Y').date()
+            # Tentar formato YYYY-MM-DD
             elif '-' in data_str:
                 return datetime.strptime(data_str.split()[0], '%Y-%m-%d').date()
         except Exception as e:
@@ -815,17 +893,23 @@ class ProcessadorArquivos:
             if not valor_limpo or valor_limpo.lower() == 'nan':
                 return Decimal('0.00')
             
+            # Formato brasileiro: "5.218,40" ou "77,40" ou "0,00"
+            # Converter para formato que Decimal aceita: ponto como separador decimal
             if ',' in valor_limpo:
+                # Remover pontos de milhar e substituir vírgula por ponto
                 valor_limpo = valor_limpo.replace('.', '').replace(',', '.')
             elif '.' in valor_limpo:
+                # Formato americano com ponto: "5218.40" ou "77.4"
+                # Verificar se é milhar ou decimal
                 partes = valor_limpo.split('.')
                 if len(partes) == 2:
-                    valor_limpo = valor_limpo
+                    # Um ponto apenas = decimal
+                    valor_limpo = valor_limpo  # Manter como está
                 else:
+                    # Múltiplos pontos = milhar, último é decimal
                     valor_limpo = ''.join(partes[:-1]) + '.' + partes[-1]
             
             return Decimal(valor_limpo)
         except Exception as e:
             print(f"⚠️  Erro ao converter valor '{valor_str}' para Decimal: {e}")
             return Decimal('0.00')
-

@@ -865,7 +865,6 @@ class UploadView(LoginRequiredMixin, FormView):
 
 
 @login_required
-@login_required
 def historico_upload_view(request):
     """View para histórico completo de uploads"""
     upload_logs = UploadLog.objects.all().order_by('-data_upload')
