@@ -438,12 +438,44 @@ def gestor_edit(request, pk):
 @login_required
 def cavalo_list(request):
     cavalos = Cavalo.objects.select_related('motorista', 'carreta', 'gestor').all()
+    
+    # Filtros
     situacao_filter = request.GET.get('situacao', '')
+    tipo_filter = request.GET.get('tipo', '')
+    fluxo_filter = request.GET.get('fluxo', '')
+    
+    # Aplicar filtros
     if situacao_filter:
-        cavalos = cavalos.filter(situacao=situacao_filter)
+        if situacao_filter == 'parado':
+            # Veículo parado = quebrado ou desagregado
+            cavalos = cavalos.filter(Q(situacao='quebrado') | Q(situacao='desagregado'))
+        else:
+            cavalos = cavalos.filter(situacao=situacao_filter)
+    
+    if tipo_filter:
+        cavalos = cavalos.filter(tipo=tipo_filter)
+    
+    if fluxo_filter:
+        cavalos = cavalos.filter(fluxo=fluxo_filter)
+    
+    # Contadores (todos os cavalos, não apenas os filtrados)
+    todos_cavalos = Cavalo.objects.all()
+    contador_trucado = todos_cavalos.filter(tipo='trucado').count()
+    contador_toco = todos_cavalos.filter(tipo='toco').count()
+    contador_parado = todos_cavalos.filter(Q(situacao='quebrado') | Q(situacao='desagregado')).count()
+    contador_escoria = todos_cavalos.filter(fluxo='escoria').count()
+    contador_minerio = todos_cavalos.filter(fluxo='minerio').count()
+    
     return render(request, 'core/cavalo_list.html', {
         'cavalos': cavalos,
-        'situacao_filter': situacao_filter
+        'situacao_filter': situacao_filter,
+        'tipo_filter': tipo_filter,
+        'fluxo_filter': fluxo_filter,
+        'contador_trucado': contador_trucado,
+        'contador_toco': contador_toco,
+        'contador_parado': contador_parado,
+        'contador_escoria': contador_escoria,
+        'contador_minerio': contador_minerio,
     })
 
 

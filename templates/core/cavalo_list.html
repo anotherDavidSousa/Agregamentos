@@ -4,6 +4,44 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+<style>
+    .badge-trucado {
+        background-color: #155724 !important;
+        color: white !important;
+    }
+    .badge-toco {
+        background-color: #ffc107 !important;
+        color: white !important;
+    }
+    .badge-escoria {
+        background-color: #004085 !important;
+        color: black !important;
+    }
+    .badge-minerio {
+        background-color: #ff8c00 !important;
+        color: black !important;
+    }
+    .banner-trucado {
+        background-color: #155724;
+        color: white;
+    }
+    .banner-toco {
+        background-color: #ffc107;
+        color: white;
+    }
+    .banner-parado {
+        background-color: #dc3545;
+        color: white;
+    }
+    .banner-escoria {
+        background-color: #004085;
+        color: white;
+    }
+    .banner-minerio {
+        background-color: #ff8c00;
+        color: white;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -12,6 +50,50 @@
         <div class="col-12">
             <h2><i class="bi bi-truck"></i> Cavalos</h2>
             <p class="text-muted">Lista de cavalos cadastrados</p>
+        </div>
+    </div>
+    
+    <!-- Exibidores de Quantidade -->
+    <div class="row mb-4">
+        <div class="col-md-2 col-sm-6 mb-3">
+            <div class="card banner-trucado text-center">
+                <div class="card-body">
+                    <h5 class="card-title mb-0">Trucado</h5>
+                    <h3 class="mb-0">{{ contador_trucado }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 col-sm-6 mb-3">
+            <div class="card banner-toco text-center">
+                <div class="card-body">
+                    <h5 class="card-title mb-0">Toco</h5>
+                    <h3 class="mb-0">{{ contador_toco }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 col-sm-6 mb-3">
+            <div class="card banner-parado text-center">
+                <div class="card-body">
+                    <h5 class="card-title mb-0">Veículo Parado</h5>
+                    <h3 class="mb-0">{{ contador_parado }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 col-sm-6 mb-3">
+            <div class="card banner-escoria text-center">
+                <div class="card-body">
+                    <h5 class="card-title mb-0">Escória</h5>
+                    <h3 class="mb-0">{{ contador_escoria }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 col-sm-6 mb-3">
+            <div class="card banner-minerio text-center">
+                <div class="card-body">
+                    <h5 class="card-title mb-0">Minério</h5>
+                    <h3 class="mb-0">{{ contador_minerio }}</h3>
+                </div>
+            </div>
         </div>
     </div>
     
@@ -27,8 +109,23 @@
                     <select id="situacao" name="situacao" class="form-select">
                         <option value="">Todas</option>
                         <option value="ativo" {% if situacao_filter == 'ativo' %}selected{% endif %}>Ativo</option>
-                        <option value="quebrado" {% if situacao_filter == 'quebrado' %}selected{% endif %}>Quebrado</option>
-                        <option value="desagregado" {% if situacao_filter == 'desagregado' %}selected{% endif %}>Desagregado</option>
+                        <option value="parado" {% if situacao_filter == 'parado' %}selected{% endif %}>Parado</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="tipo" class="form-label">Tipo</label>
+                    <select id="tipo" name="tipo" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="trucado" {% if tipo_filter == 'trucado' %}selected{% endif %}>Trucado</option>
+                        <option value="toco" {% if tipo_filter == 'toco' %}selected{% endif %}>Toco</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="fluxo" class="form-label">Fluxo</label>
+                    <select id="fluxo" name="fluxo" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="escoria" {% if fluxo_filter == 'escoria' %}selected{% endif %}>Escória</option>
+                        <option value="minerio" {% if fluxo_filter == 'minerio' %}selected{% endif %}>Minério</option>
                     </select>
                 </div>
                 <div class="col-md-3 d-flex align-items-end">
@@ -52,15 +149,15 @@
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table id="tabelaCavalos" class="table table-hover" style="width:100%">
+                        <table id="tabelaCavalos" class="table table-hover">
                             <thead>
                                 <tr>
                                     <th>Placa</th>
                                     <th>Ano</th>
                                     <th>Tipo</th>
-                                    <th>Motorista</th>
                                     <th>Carreta</th>
-                                    <th>Tipo da Carreta</th>
+                                    <th>Tipo Carreta</th>
+                                    <th>Motorista</th>
                                     <th>Fluxo</th>
                                 </tr>
                             </thead>
@@ -76,19 +173,9 @@
                                     <td>{{ cavalo.ano|default:"-" }}</td>
                                     <td>
                                         {% if cavalo.tipo == 'toco' %}
-                                            <span class="badge bg-info">Toco</span>
+                                            <span class="badge badge-toco">Toco</span>
                                         {% elif cavalo.tipo == 'trucado' %}
-                                            <span class="badge bg-primary">Trucado</span>
-                                        {% else %}
-                                            <span class="text-muted">-</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if cavalo.motorista %}
-                                            <a href="{% url 'motorista_detail' cavalo.motorista.pk %}" 
-                                               style="text-decoration: none; font-weight: bold; color: #0d6efd;">
-                                                {{ cavalo.motorista.nome }}
-                                            </a>
+                                            <span class="badge badge-trucado">Trucado</span>
                                         {% else %}
                                             <span class="text-muted">-</span>
                                         {% endif %}
@@ -111,10 +198,20 @@
                                         {% endif %}
                                     </td>
                                     <td>
+                                        {% if cavalo.motorista %}
+                                            <a href="{% url 'motorista_detail' cavalo.motorista.pk %}" 
+                                               style="text-decoration: none; font-weight: bold; color: #0d6efd;">
+                                                {{ cavalo.motorista.nome }}
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
                                         {% if cavalo.fluxo == 'escoria' %}
-                                            <span class="badge bg-warning">Escória</span>
+                                            <span class="badge badge-escoria">Escória</span>
                                         {% elif cavalo.fluxo == 'minerio' %}
-                                            <span class="badge bg-info">Minério</span>
+                                            <span class="badge badge-minerio">Minério</span>
                                         {% else %}
                                             <span class="text-muted">-</span>
                                         {% endif %}
@@ -148,11 +245,10 @@
             },
             order: [[0, 'asc']], // Ordenar por Placa por padrão
             pageLength: 25,
-            autoWidth: false,
+            autoWidth: true,
             responsive: true,
             columnDefs: [
-                { orderable: true, targets: '_all' },
-                { width: 'auto', targets: '_all' }
+                { orderable: true, targets: '_all' }
             ]
         });
     });
