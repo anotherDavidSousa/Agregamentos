@@ -3,8 +3,8 @@ Comando para importar motoristas de um arquivo Excel.
 
 Estrutura esperada:
 - Coluna 1: Nome do motorista
-- Coluna 2: CPF do motorista
-- Coluna 3: Placa do cavalo que o motorista trabalha
+- Coluna 2: Placa do cavalo que o motorista trabalha
+- Coluna 3: CPF do motorista
 
 Uso:
     python manage.py importar_motoristas_excel "D:\Downloads\motoristas.xlsx"
@@ -110,7 +110,7 @@ class Command(BaseCommand):
             # Verificar se tem pelo menos 3 colunas
             if df.shape[1] < 3:
                 self.stdout.write(
-                    self.style.ERROR('❌ Arquivo deve ter pelo menos 3 colunas (Nome, CPF, Cavalo)')
+                    self.style.ERROR('❌ Arquivo deve ter pelo menos 3 colunas (Nome, Placa do Cavalo, CPF)')
                 )
                 return
 
@@ -128,8 +128,8 @@ class Command(BaseCommand):
             self.stdout.write(f'📊 Total de linhas encontradas: {total_linhas}')
 
             motoristas_criados = 0
-            motoristas_ignorados = 0
             motoristas_atualizados = 0
+            conflitos_cavalo = 0
             erros = []
 
             if dry_run:
@@ -141,10 +141,10 @@ class Command(BaseCommand):
             with transaction.atomic():
                 for idx, row in df.iterrows():
                     try:
-                        # Extrair dados das colunas
+                        # Extrair dados das colunas (ordem: Nome, Placa, CPF)
                         nome_raw = str(row.iloc[0]).strip() if pd.notna(row.iloc[0]) else ''
-                        cpf_raw = str(row.iloc[1]).strip() if pd.notna(row.iloc[1]) else ''
-                        placa_cavalo_raw = str(row.iloc[2]).strip() if pd.notna(row.iloc[2]) else ''
+                        placa_cavalo_raw = str(row.iloc[1]).strip() if pd.notna(row.iloc[1]) else ''
+                        cpf_raw = str(row.iloc[2]).strip() if pd.notna(row.iloc[2]) else ''
 
                         # Validar nome
                         if not nome_raw or nome_raw.lower() in ['nan', 'none', '']:
@@ -162,16 +162,9 @@ class Command(BaseCommand):
                         if not motorista_existente:
                             motorista_existente = Motorista.objects.filter(nome__iexact=nome_raw).first()
 
-                        # Se motorista já existe, ignorar
-                        if motorista_existente:
-                            motoristas_ignorados += 1
-                            self.stdout.write(
-                                f'⏭️  Motorista já existe (ignorado): {nome_raw}'
-                            )
-                            continue
-
                         # Buscar cavalo pela placa
                         cavalo = None
+                        motorista_cavalo_anterior = None
                         if placa_cavalo:
                             cavalo = Cavalo.objects.filter(placa=placa_cavalo).first()
                             if not cavalo:
@@ -180,27 +173,88 @@ class Command(BaseCommand):
                                         f'⚠️  Cavalo não encontrado: {placa_cavalo} (linha {idx + 2})'
                                     )
                                 )
+                            else:
+                                # Verificar se o cavalo já está vinculado a outro motorista
+                                try:
+                                    motorista_cavalo_anterior = cavalo.motorista
+                                    # Só é conflito se o cavalo está vinculado a um motorista diferente do atual
+                                    if motorista_cavalo_anterior:
+                                        # Se estamos atualizando um motorista existente e o cavalo já está com ele, não é conflito
+                                        if motorista_existente and motorista_cavalo_anterior.id == motorista_existente.id:
+                                            # Mesmo motorista, não é conflito
+                                            pass
+                                        else:
+                                            # Cavalo está com outro motorista - CONFLITO
+                                            conflitos_cavalo += 1
+                                            self.stdout.write(
+                                                self.style.ERROR(
+                                                    f'⚠️  CONFLITO: Cavalo {placa_cavalo} já está vinculado ao motorista '
+                                                    f'"{motorista_cavalo_anterior.nome}" (linha {idx + 2}). '
+                                                    f'Motorista atual: {nome_raw}'
+                                                )
+                                            )
+                                except:
+                                    # Cavalo não tem motorista associado
+                                    pass
 
-                        # Criar motorista
-                        if not dry_run:
-                            motorista = Motorista.objects.create(
-                                nome=nome_raw,
-                                cpf=cpf,
-                                cavalo=cavalo
-                            )
-                            motoristas_criados += 1
-                            self.stdout.write(
-                                f'✅ Motorista criado: {nome_raw}' +
-                                (f' (CPF: {cpf})' if cpf else '') +
-                                (f' (Cavalo: {placa_cavalo})' if placa_cavalo and cavalo else '')
-                            )
+                        # Se motorista não existe, criar
+                        if not motorista_existente:
+                            if not dry_run:
+                                motorista = Motorista.objects.create(
+                                    nome=nome_raw,
+                                    cpf=cpf,
+                                    cavalo=cavalo if cavalo and not motorista_cavalo_anterior else None
+                                )
+                                motoristas_criados += 1
+                                self.stdout.write(
+                                    f'✅ Motorista criado: {nome_raw}' +
+                                    (f' (CPF: {cpf})' if cpf else '') +
+                                    (f' (Cavalo: {placa_cavalo})' if placa_cavalo and cavalo and not motorista_cavalo_anterior else '')
+                                )
+                            else:
+                                motoristas_criados += 1
+                                self.stdout.write(
+                                    f'✅ Motorista seria criado: {nome_raw}' +
+                                    (f' (CPF: {cpf})' if cpf else '') +
+                                    (f' (Cavalo: {placa_cavalo})' if placa_cavalo and cavalo and not motorista_cavalo_anterior else '')
+                                )
                         else:
-                            motoristas_criados += 1
-                            self.stdout.write(
-                                f'✅ Motorista seria criado: {nome_raw}' +
-                                (f' (CPF: {cpf})' if cpf else '') +
-                                (f' (Cavalo: {placa_cavalo})' if placa_cavalo else '')
-                            )
+                            # Motorista já existe - atualizar CPF e cavalo se necessário
+                            atualizado = False
+                            
+                            # Atualizar CPF se fornecido e diferente
+                            if cpf and motorista_existente.cpf != cpf:
+                                if not dry_run:
+                                    motorista_existente.cpf = cpf
+                                    atualizado = True
+                            
+                            # Atualizar cavalo se fornecido, não houver conflito e for diferente
+                            if cavalo and not motorista_cavalo_anterior and motorista_existente.cavalo != cavalo:
+                                if not dry_run:
+                                    motorista_existente.cavalo = cavalo
+                                    atualizado = True
+                            
+                            if atualizado:
+                                if not dry_run:
+                                    motorista_existente.save()
+                                    motoristas_atualizados += 1
+                                    self.stdout.write(
+                                        f'🔄 Motorista atualizado: {nome_raw}' +
+                                        (f' (CPF: {cpf})' if cpf else '') +
+                                        (f' (Cavalo: {placa_cavalo})' if placa_cavalo and cavalo and not motorista_cavalo_anterior else '')
+                                    )
+                                else:
+                                    motoristas_atualizados += 1
+                                    self.stdout.write(
+                                        f'🔄 Motorista seria atualizado: {nome_raw}' +
+                                        (f' (CPF: {cpf})' if cpf else '') +
+                                        (f' (Cavalo: {placa_cavalo})' if placa_cavalo and cavalo and not motorista_cavalo_anterior else '')
+                                    )
+                            else:
+                                # Motorista existe mas não precisa atualizar
+                                self.stdout.write(
+                                    f'ℹ️  Motorista já existe (sem alterações): {nome_raw}'
+                                )
 
                     except Exception as e:
                         erro_msg = f'Erro na linha {idx + 2}: {str(e)}'
@@ -218,7 +272,11 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS('📊 RESUMO DO PROCESSAMENTO'))
             self.stdout.write('='*60)
             self.stdout.write(f'✅ Motoristas criados: {motoristas_criados}')
-            self.stdout.write(f'⏭️  Motoristas ignorados (já existiam): {motoristas_ignorados}')
+            self.stdout.write(f'🔄 Motoristas atualizados: {motoristas_atualizados}')
+            if conflitos_cavalo > 0:
+                self.stdout.write(
+                    self.style.ERROR(f'⚠️  Conflitos de cavalo (já vinculado a outro motorista): {conflitos_cavalo}')
+                )
             
             if erros:
                 self.stdout.write(
