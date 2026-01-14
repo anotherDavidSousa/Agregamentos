@@ -21,6 +21,19 @@
         background-color: #ff8c00 !important;
         color: white !important;
     }
+    /* Badges de Situação */
+    .badge-situacao-ativo {
+        background-color: #6cbd45 !important; /* Verde claro */
+        color: white !important;
+    }
+    .badge-situacao-parado {
+        background-color: #dc3545 !important; /* Vermelho */
+        color: white !important;
+    }
+    .badge-situacao-desagregado {
+        background-color: #495057 !important; /* Cinza escuro */
+        color: white !important;
+    }
     .banner-trucado {
         background-color: #155724;
         color: white;
@@ -105,17 +118,33 @@
         overflow: hidden;
         text-overflow: ellipsis;
     }
-    /* Coluna Fluxo - largura compacta */
+    /* Coluna CPF - largura compacta */
     #tabelaCavalos th:nth-child(8),
     #tabelaCavalos td:nth-child(8) {
+        width: 120px !important;
+        min-width: 100px !important;
+        max-width: 120px !important;
+        text-align: center;
+    }
+    /* Coluna Fluxo - largura compacta */
+    #tabelaCavalos th:nth-child(9),
+    #tabelaCavalos td:nth-child(9) {
         width: 100px !important;
         min-width: 90px !important;
         max-width: 100px !important;
         text-align: center;
     }
+    /* Coluna Situação - largura compacta */
+    #tabelaCavalos th:nth-child(10),
+    #tabelaCavalos td:nth-child(10) {
+        width: 110px !important;
+        min-width: 100px !important;
+        max-width: 110px !important;
+        text-align: center;
+    }
     /* Coluna de observações - permite quebra de linha */
-    #tabelaCavalos th:nth-child(9),
-    #tabelaCavalos td:nth-child(9) {
+    #tabelaCavalos th:nth-child(11),
+    #tabelaCavalos td:nth-child(11) {
         white-space: normal;
         word-wrap: break-word;
         word-break: break-word;
@@ -298,7 +327,9 @@
                                     <th>Carreta</th>
                                     <th>Tipo Carreta</th>
                                     <th>Motorista</th>
+                                    <th>CPF</th>
                                     <th>Fluxo</th>
+                                    <th>Situação</th>
                                     <th>Observações</th>
                                 </tr>
                             </thead>
@@ -360,10 +391,32 @@
                                         {% endif %}
                                     </td>
                                     <td>
+                                        {% if cavalo.motorista and cavalo.motorista.cpf %}
+                                            {{ cavalo.motorista.cpf }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
                                         {% if cavalo.fluxo == 'escoria' %}
                                             <span class="badge badge-escoria">Escória</span>
                                         {% elif cavalo.fluxo == 'minerio' %}
                                             <span class="badge badge-minerio">Minério</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if cavalo.situacao %}
+                                            {% if cavalo.situacao == 'ativo' %}
+                                                <span class="badge badge-situacao-ativo">{{ cavalo.get_situacao_display }}</span>
+                                            {% elif cavalo.situacao == 'parado' %}
+                                                <span class="badge badge-situacao-parado">{{ cavalo.get_situacao_display }}</span>
+                                            {% elif cavalo.situacao == 'desagregado' %}
+                                                <span class="badge badge-situacao-desagregado">{{ cavalo.get_situacao_display }}</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">{{ cavalo.get_situacao_display }}</span>
+                                            {% endif %}
                                         {% else %}
                                             <span class="text-muted">-</span>
                                         {% endif %}
@@ -384,7 +437,7 @@
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="9" class="text-center text-muted py-4">
+                                    <td colspan="11" class="text-center text-muted py-4">
                                         <i class="bi bi-info-circle"></i> Nenhum cavalo cadastrado.
                                     </td>
                                 </tr>
@@ -451,12 +504,22 @@
                 },
                 {
                     orderable: true,
-                    targets: [7], // Fluxo
+                    targets: [7], // CPF
+                    width: '120px'
+                },
+                {
+                    orderable: true,
+                    targets: [8], // Fluxo
                     width: '100px'
                 },
                 {
+                    orderable: true,
+                    targets: [9], // Situação
+                    width: '110px'
+                },
+                {
                     orderable: false,
-                    targets: [8], // Observações não ordenável
+                    targets: [10], // Observações não ordenável
                     width: 'auto',
                     className: 'text-wrap'
                 }

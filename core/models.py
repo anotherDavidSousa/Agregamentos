@@ -77,7 +77,7 @@ class Cavalo(models.Model):
 
     SITUACAO_CHOICES = [
         ('ativo', 'Ativo'),
-        ('quebrado', 'Quebrado'),
+        ('parado', 'Parado'),
         ('desagregado', 'Desagregado'),
     ]
 

@@ -90,11 +90,11 @@
                                     <td>
                                         {% if cavalo.situacao %}
                                             {% if cavalo.situacao == 'ativo' %}
-                                                <span class="badge bg-success">{{ cavalo.get_situacao_display }}</span>
-                                            {% elif cavalo.situacao == 'quebrado' %}
-                                                <span class="badge bg-danger">{{ cavalo.get_situacao_display }}</span>
+                                                <span class="badge badge-situacao-ativo">{{ cavalo.get_situacao_display }}</span>
+                                            {% elif cavalo.situacao == 'parado' %}
+                                                <span class="badge badge-situacao-parado">{{ cavalo.get_situacao_display }}</span>
                                             {% elif cavalo.situacao == 'desagregado' %}
-                                                <span class="badge bg-warning">{{ cavalo.get_situacao_display }}</span>
+                                                <span class="badge badge-situacao-desagregado">{{ cavalo.get_situacao_display }}</span>
                                             {% else %}
                                                 <span class="badge bg-secondary">{{ cavalo.get_situacao_display }}</span>
                                             {% endif %}

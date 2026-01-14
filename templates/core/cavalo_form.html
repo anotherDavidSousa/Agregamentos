@@ -49,7 +49,7 @@
         <select id="situacao" name="situacao">
             <option value="">Selecione...</option>
             <option value="ativo" {% if cavalo and cavalo.situacao == 'ativo' %}selected{% endif %}>Ativo</option>
-            <option value="quebrado" {% if cavalo and cavalo.situacao == 'quebrado' %}selected{% endif %}>Quebrado</option>
+            <option value="parado" {% if cavalo and cavalo.situacao == 'parado' %}selected{% endif %}>Parado</option>
             <option value="desagregado" {% if cavalo and cavalo.situacao == 'desagregado' %}selected{% endif %}>Desagregado</option>
         </select>
     </div>

@@ -483,12 +483,12 @@ def cavalo_list(request):
         Q(carreta__isnull=True) | Q(situacao='desagregado')
     )
     
-    # Alterar situação para "quebrado" (parado) quando não tem motorista
+    # Alterar situação para "parado" quando não tem motorista
     from django.db import transaction
     with transaction.atomic():
         cavalos_sem_motorista = cavalos.filter(motorista__isnull=True, situacao='ativo')
         for cavalo in cavalos_sem_motorista:
-            cavalo.situacao = 'quebrado'  # Usando 'quebrado' como "parado"
+            cavalo.situacao = 'parado'
             cavalo.save(update_fields=['situacao'])
     
     # Filtros
@@ -499,8 +499,8 @@ def cavalo_list(request):
     # Aplicar filtros
     if situacao_filter:
         if situacao_filter == 'parado':
-            # Veículo parado = quebrado (sem motorista)
-            cavalos = cavalos.filter(situacao='quebrado')
+            # Veículo parado (sem motorista)
+            cavalos = cavalos.filter(situacao='parado')
         else:
             cavalos = cavalos.filter(situacao=situacao_filter)
     
@@ -514,7 +514,7 @@ def cavalo_list(request):
     todos_cavalos = Cavalo.objects.all()
     contador_trucado = todos_cavalos.filter(tipo='trucado').count()
     contador_toco = todos_cavalos.filter(tipo='toco').count()
-    contador_parado = todos_cavalos.filter(Q(situacao='quebrado') | Q(situacao='desagregado')).count()
+    contador_parado = todos_cavalos.filter(Q(situacao='parado') | Q(situacao='desagregado')).count()
     contador_escoria = todos_cavalos.filter(fluxo='escoria').count()
     contador_minerio = todos_cavalos.filter(fluxo='minerio').count()
     
