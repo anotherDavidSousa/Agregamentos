@@ -131,19 +131,45 @@
         text-overflow: ellipsis;
         max-height: 4.2em;
     }
-    /* Cores de fundo para linhas baseadas no fluxo enfo */
+    /* Cores de fundo para linhas baseadas no fluxo - aplicado em toda a linha e células */
     #tabelaCavalos tbody tr.fluxo-minerio {
         background-color: #FFCC99 !important;
     }
+    #tabelaCavalos tbody tr.fluxo-minerio td {
+        background-color: #FFCC99 !important;
+    }
     #tabelaCavalos tbody tr.fluxo-escoria {
+        background-color: #FFFFFF !important;
+    }
+    #tabelaCavalos tbody tr.fluxo-escoria td {
         background-color: #FFFFFF !important;
     }
     /* Garantir que as linhas mantenham a cor ao passar o mouse */
     #tabelaCavalos tbody tr.fluxo-minerio:hover {
         background-color: #FFB366 !important; /* Tom mais escuro no hover */
     }
+    #tabelaCavalos tbody tr.fluxo-minerio:hover td {
+        background-color: #FFB366 !important;
+    }
     #tabelaCavalos tbody tr.fluxo-escoria:hover {
         background-color: #F8F9FA !important; /* Tom levemente cinza no hover */
+    }
+    #tabelaCavalos tbody tr.fluxo-escoria:hover td {
+        background-color: #F8F9FA !important;
+    }
+    /* Sobrescrever estilos do Bootstrap table-hover */
+    table.table-hover tbody tr.fluxo-minerio:hover td,
+    table.table-hover tbody tr.fluxo-minerio:hover {
+        background-color: #FFB366 !important;
+    }
+    table.table-hover tbody tr.fluxo-escoria:hover td,
+    table.table-hover tbody tr.fluxo-escoria:hover {
+        background-color: #F8F9FA !important;
+    }
+    /* Garantir que badges e links mantenham visibilidade */
+    #tabelaCavalos tbody tr.fluxo-minerio td a,
+    #tabelaCavalos tbody tr.fluxo-minerio td .badge {
+        /* Manter cores originais dos links e badges */
     }
     /* Estilo para foto */
     #tabelaCavalos td img {
@@ -444,6 +470,18 @@
             drawCallback: function() {
                 // Ajustar colunas após cada desenho
                 this.api().columns.adjust();
+                // Forçar aplicação dos estilos CSS nas linhas com fluxo
+                // Isso garante que as cores sejam aplicadas mesmo após o DataTables renderizar
+                setTimeout(function() {
+                    $('#tabelaCavalos tbody tr.fluxo-minerio').each(function() {
+                        $(this).css('background-color', '#FFCC99');
+                        $(this).find('td').css('background-color', '#FFCC99');
+                    });
+                    $('#tabelaCavalos tbody tr.fluxo-escoria').each(function() {
+                        $(this).css('background-color', '#FFFFFF');
+                        $(this).find('td').css('background-color', '#FFFFFF');
+                    });
+                }, 10);
                 // Inicializar tooltips do Bootstrap
                 var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
                 var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
@@ -461,6 +499,36 @@
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+        
+        // Garantir cores de fundo após inicialização completa
+        setTimeout(function() {
+            $('#tabelaCavalos tbody tr.fluxo-minerio').each(function() {
+                $(this).css('background-color', '#FFCC99');
+                $(this).find('td').css('background-color', '#FFCC99');
+            });
+            $('#tabelaCavalos tbody tr.fluxo-escoria').each(function() {
+                $(this).css('background-color', '#FFFFFF');
+                $(this).find('td').css('background-color', '#FFFFFF');
+            });
+        }, 100);
+        
+        // Eventos de hover para manter cores
+        $(document).on('mouseenter', '#tabelaCavalos tbody tr.fluxo-minerio', function() {
+            $(this).css('background-color', '#FFB366');
+            $(this).find('td').css('background-color', '#FFB366');
+        });
+        $(document).on('mouseleave', '#tabelaCavalos tbody tr.fluxo-minerio', function() {
+            $(this).css('background-color', '#FFCC99');
+            $(this).find('td').css('background-color', '#FFCC99');
+        });
+        $(document).on('mouseenter', '#tabelaCavalos tbody tr.fluxo-escoria', function() {
+            $(this).css('background-color', '#F8F9FA');
+            $(this).find('td').css('background-color', '#F8F9FA');
+        });
+        $(document).on('mouseleave', '#tabelaCavalos tbody tr.fluxo-escoria', function() {
+            $(this).css('background-color', '#FFFFFF');
+            $(this).find('td').css('background-color', '#FFFFFF');
         });
     });
 </script>
