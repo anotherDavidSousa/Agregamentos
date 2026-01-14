@@ -98,9 +98,9 @@
     /* Coluna Motorista - largura controlada */
     #tabelaCavalos th:nth-child(7),
     #tabelaCavalos td:nth-child(7) {
-        width: 180px !important;
+        width: 250px !important;
         min-width: 150px !important;
-        max-width: 180px !important;
+        max-width: 250px !important;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -130,6 +130,20 @@
         overflow: hidden;
         text-overflow: ellipsis;
         max-height: 4.2em;
+    }
+    /* Cores de fundo para linhas baseadas no fluxo */
+    #tabelaCavalos tbody tr.fluxo-minerio {
+        background-color: #FFCC99 !important;
+    }
+    #tabelaCavalos tbody tr.fluxo-escoria {
+        background-color: #FFFFFF !important;
+    }
+    /* Garantir que as linhas mantenham a cor ao passar o mouse */
+    #tabelaCavalos tbody tr.fluxo-minerio:hover {
+        background-color: #FFB366 !important; /* Tom mais escuro no hover */
+    }
+    #tabelaCavalos tbody tr.fluxo-escoria:hover {
+        background-color: #F8F9FA !important; /* Tom levemente cinza no hover */
     }
     /* Estilo para foto */
     #tabelaCavalos td img {
@@ -264,7 +278,7 @@
                             </thead>
                             <tbody>
                                 {% for cavalo in cavalos %}
-                                <tr>
+                                <tr class="{% if cavalo.fluxo == 'minerio' %}fluxo-minerio{% elif cavalo.fluxo == 'escoria' %}fluxo-escoria{% endif %}">
                                     <td>
                                         {% if cavalo.foto %}
                                             <img src="{{ cavalo.foto.url }}" 
@@ -407,7 +421,7 @@
                 {
                     orderable: true,
                     targets: [6], // Motorista
-                    width: '180px'
+                    width: '250px'
                 },
                 {
                     orderable: true,
