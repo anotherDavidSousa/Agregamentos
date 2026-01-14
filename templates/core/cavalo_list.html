@@ -41,6 +41,50 @@
         background-color: #ff8c00;
         color: white;
     }
+    /* Estilos para a tabela com largura dinâmica */
+    #tabelaCavalos {
+        width: 100% !important;
+        table-layout: auto;
+    }
+    #tabelaCavalos th,
+    #tabelaCavalos td {
+        white-space: nowrap;
+        width: auto;
+    }
+    /* Coluna de foto - largura fixa pequena */
+    #tabelaCavalos th:first-child,
+    #tabelaCavalos td:first-child {
+        width: 80px;
+        min-width: 80px;
+        max-width: 80px;
+    }
+    /* Coluna de observações - permite quebra de linha */
+    #tabelaCavalos th:last-child,
+    #tabelaCavalos td:last-child {
+        white-space: normal;
+        word-wrap: break-word;
+        word-break: break-word;
+        max-width: 300px;
+        min-width: 150px;
+        line-height: 1.4;
+    }
+    .observacoes-cell {
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-height: 4.2em;
+    }
+    /* Estilo para foto */
+    #tabelaCavalos td img {
+        transition: transform 0.2s;
+        border: 1px solid #dee2e6;
+    }
+    #tabelaCavalos td img:hover {
+        transform: scale(1.1);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
 </style>
 {% endblock %}
 
@@ -152,6 +196,7 @@
                         <table id="tabelaCavalos" class="table table-hover">
                             <thead>
                                 <tr>
+                                    <th>Foto</th>
                                     <th>Placa</th>
                                     <th>Ano</th>
                                     <th>Tipo</th>
@@ -159,11 +204,23 @@
                                     <th>Tipo Carreta</th>
                                     <th>Motorista</th>
                                     <th>Fluxo</th>
+                                    <th>Observações</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for cavalo in cavalos %}
                                 <tr>
+                                    <td>
+                                        {% if cavalo.foto %}
+                                            <img src="{{ cavalo.foto.url }}" 
+                                                 alt="Foto {{ cavalo.placa }}" 
+                                                 style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px; cursor: pointer;"
+                                                 onclick="window.open('{{ cavalo.foto.url }}', '_blank')"
+                                                 title="Clique para ampliar">
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
                                     <td>
                                         <a href="{% url 'cavalo_detail' cavalo.pk %}" 
                                            style="text-decoration: none; font-weight: bold; color: #0d6efd;">
@@ -216,10 +273,23 @@
                                             <span class="text-muted">-</span>
                                         {% endif %}
                                     </td>
+                                    <td>
+                                        {% if cavalo.observacoes %}
+                                            <div class="observacoes-cell" 
+                                                 title="{{ cavalo.observacoes }}" 
+                                                 data-bs-toggle="tooltip" 
+                                                 data-bs-placement="left"
+                                                 style="cursor: help; max-height: 60px; overflow: hidden; text-overflow: ellipsis;">
+                                                {{ cavalo.observacoes }}
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="7" class="text-center text-muted py-4">
+                                    <td colspan="9" class="text-center text-muted py-4">
                                         <i class="bi bi-info-circle"></i> Nenhum cavalo cadastrado.
                                     </td>
                                 </tr>
@@ -243,13 +313,48 @@
             language: {
                 url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json'
             },
-            order: [[0, 'asc']], // Ordenar por Placa por padrão
+            order: [[1, 'asc']], // Ordenar por Placa por padrão (coluna 1 agora)
             pageLength: 25,
-            autoWidth: true,
-            responsive: true,
+            autoWidth: true, // Habilitar autoWidth para largura dinâmica
+            responsive: false, // Desabilitar responsive para melhor controle de largura
+            scrollX: false, // Não usar scroll horizontal
             columnDefs: [
-                { orderable: true, targets: '_all' }
-            ]
+                { 
+                    orderable: false,
+                    targets: [0], // Foto não ordenável
+                    width: '80px'
+                },
+                {
+                    orderable: false,
+                    targets: [8], // Observações não ordenável
+                    width: 'auto',
+                    className: 'text-wrap'
+                },
+                { 
+                    orderable: true, 
+                    targets: [1, 2, 3, 4, 5, 6, 7], // Outras colunas ordenáveis
+                    width: 'auto'
+                }
+            ],
+            // Ajustar largura das colunas baseado no conteúdo após renderização
+            initComplete: function() {
+                this.api().columns.adjust();
+            },
+            // Reajustar após mudanças
+            drawCallback: function() {
+                this.api().columns.adjust();
+                // Inicializar tooltips do Bootstrap
+                var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                    return new bootstrap.Tooltip(tooltipTriggerEl);
+                });
+            }
+        });
+        
+        // Inicializar tooltips após carregar a página
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
         });
     });
 </script>
