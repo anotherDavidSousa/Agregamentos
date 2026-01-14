@@ -208,6 +208,7 @@ class Carreta(models.Model):
     local = models.CharField(max_length=255, blank=True, null=True, verbose_name='Local', help_text='Atualizado automaticamente por API')
     foto = models.ImageField(upload_to='carretas/fotos/', blank=True, null=True, verbose_name='Foto')
     documento = models.FileField(upload_to='carretas/documentos/', blank=True, null=True, verbose_name='Documento')
+    observacoes = models.TextField(blank=True, null=True, verbose_name='Observações')
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
 
@@ -520,4 +521,89 @@ class HistoricoGestor(models.Model):
     def __str__(self):
         fim = f' até {self.data_fim.strftime("%d/%m/%Y")}' if self.data_fim else ' (ativo)'
         return f'{self.gestor.nome} - {self.cavalo.placa} - {self.data_inicio.strftime("%d/%m/%Y")}{fim}'
+
+
+# Modelos para múltiplos documentos
+class DocumentoProprietario(models.Model):
+    """Modelo para armazenar múltiplos documentos de proprietários"""
+    proprietario = models.ForeignKey(
+        Proprietario,
+        on_delete=models.CASCADE,
+        related_name='documentos',
+        verbose_name='Proprietário'
+    )
+    arquivo = models.FileField(upload_to='proprietarios/documentos/', verbose_name='Documento')
+    descricao = models.CharField(max_length=255, blank=True, null=True, verbose_name='Descrição')
+    criado_em = models.DateTimeField(auto_now_add=True, verbose_name='Data de Criação')
+    
+    class Meta:
+        verbose_name = 'Documento do Proprietário'
+        verbose_name_plural = 'Documentos dos Proprietários'
+        ordering = ['-criado_em']
+    
+    def __str__(self):
+        return f'{self.proprietario.nome_razao_social} - {self.descricao or "Documento"}'
+
+
+class DocumentoMotorista(models.Model):
+    """Modelo para armazenar múltiplos documentos de motoristas"""
+    motorista = models.ForeignKey(
+        Motorista,
+        on_delete=models.CASCADE,
+        related_name='documentos',
+        verbose_name='Motorista'
+    )
+    arquivo = models.FileField(upload_to='motoristas/documentos/', verbose_name='Documento')
+    descricao = models.CharField(max_length=255, blank=True, null=True, verbose_name='Descrição')
+    criado_em = models.DateTimeField(auto_now_add=True, verbose_name='Data de Criação')
+    
+    class Meta:
+        verbose_name = 'Documento do Motorista'
+        verbose_name_plural = 'Documentos dos Motoristas'
+        ordering = ['-criado_em']
+    
+    def __str__(self):
+        return f'{self.motorista.nome} - {self.descricao or "Documento"}'
+
+
+class DocumentoCavalo(models.Model):
+    """Modelo para armazenar múltiplos documentos de cavalos"""
+    cavalo = models.ForeignKey(
+        Cavalo,
+        on_delete=models.CASCADE,
+        related_name='documentos',
+        verbose_name='Cavalo'
+    )
+    arquivo = models.FileField(upload_to='cavalos/documentos/', verbose_name='Documento')
+    descricao = models.CharField(max_length=255, blank=True, null=True, verbose_name='Descrição')
+    criado_em = models.DateTimeField(auto_now_add=True, verbose_name='Data de Criação')
+    
+    class Meta:
+        verbose_name = 'Documento do Cavalo'
+        verbose_name_plural = 'Documentos dos Cavalos'
+        ordering = ['-criado_em']
+    
+    def __str__(self):
+        return f'{self.cavalo.placa} - {self.descricao or "Documento"}'
+
+
+class DocumentoCarreta(models.Model):
+    """Modelo para armazenar múltiplos documentos de carretas"""
+    carreta = models.ForeignKey(
+        Carreta,
+        on_delete=models.CASCADE,
+        related_name='documentos',
+        verbose_name='Carreta'
+    )
+    arquivo = models.FileField(upload_to='carretas/documentos/', verbose_name='Documento')
+    descricao = models.CharField(max_length=255, blank=True, null=True, verbose_name='Descrição')
+    criado_em = models.DateTimeField(auto_now_add=True, verbose_name='Data de Criação')
+    
+    class Meta:
+        verbose_name = 'Documento da Carreta'
+        verbose_name_plural = 'Documentos das Carretas'
+        ordering = ['-criado_em']
+    
+    def __str__(self):
+        return f'{self.carreta.placa} - {self.descricao or "Documento"}'
 

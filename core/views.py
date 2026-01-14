@@ -11,6 +11,7 @@ from django.contrib import messages
 from django.core.files.storage import default_storage
 from django.conf import settings
 from datetime import datetime
+from decimal import Decimal
 import os
 import threading
 import time
@@ -104,6 +105,10 @@ def proprietario_list(request):
     for proprietario in proprietarios:
         proprietario.atualizar_status_automatico()
     
+    # Filtros de período
+    data_inicio = request.GET.get('data_inicio', '')
+    data_fim = request.GET.get('data_fim', '')
+    
     # Filtrar apenas parceiros ativos que têm cavalos com carreta
     parceiros_ativos = Proprietario.objects.filter(
         status='sim'
@@ -129,16 +134,49 @@ def proprietario_list(request):
         if cavalos_com_carreta:
             # Preencher até 3 cavalos com placa e ID
             cavalos_data = []
+            placas_cavalos = []
             for cavalo in cavalos_com_carreta[:3]:
                 if cavalo.placa:
                     cavalos_data.append({
                         'placa': cavalo.placa,
                         'id': cavalo.pk
                     })
+                    placas_cavalos.append(cavalo.placa.upper().strip())
             
             # Preencher até 3 cavalos
             while len(cavalos_data) < 3:
                 cavalos_data.append({'placa': '', 'id': None})
+            
+            # Calcular faturamento total de todos os veículos do proprietário
+            faturamento_total = Decimal('0.00')
+            if placas_cavalos:
+                # Buscar todos os documentos de transporte das placas dos cavalos
+                documentos_query = DocumentoTransporte.objects.filter(
+                    cavalo__in=placas_cavalos
+                )
+                
+                # Aplicar filtro de período se fornecido
+                if data_inicio:
+                    try:
+                        from datetime import datetime
+                        data_inicio_obj = datetime.strptime(data_inicio, '%Y-%m-%d').date()
+                        documentos_query = documentos_query.filter(data_documento__gte=data_inicio_obj)
+                    except:
+                        pass
+                
+                if data_fim:
+                    try:
+                        from datetime import datetime
+                        data_fim_obj = datetime.strptime(data_fim, '%Y-%m-%d').date()
+                        documentos_query = documentos_query.filter(data_documento__lte=data_fim_obj)
+                    except:
+                        pass
+                
+                # Somar o total_frete de todos os documentos
+                from django.db.models import Sum
+                resultado = documentos_query.aggregate(total=Sum('total_frete'))
+                if resultado['total']:
+                    faturamento_total = resultado['total']
             
             # Limpar WhatsApp para link
             whatsapp_limpo = ''
@@ -151,10 +189,13 @@ def proprietario_list(request):
                 'cavalo_2': cavalos_data[1],
                 'cavalo_3': cavalos_data[2],
                 'whatsapp_limpo': whatsapp_limpo,
+                'faturamento_total': faturamento_total,
             })
     
     return render(request, 'core/proprietario_list.html', {
-        'dados_parceiros': dados_parceiros
+        'dados_parceiros': dados_parceiros,
+        'data_inicio': data_inicio,
+        'data_fim': data_fim,
     })
 
 
@@ -437,7 +478,18 @@ def gestor_edit(request, pk):
 # Views para Cavalos
 @login_required
 def cavalo_list(request):
-    cavalos = Cavalo.objects.select_related('motorista', 'carreta', 'gestor').all()
+    # Filtrar: não exibir cavalos sem carreta ou com situação desagregado
+    cavalos = Cavalo.objects.select_related('motorista', 'carreta', 'gestor').exclude(
+        Q(carreta__isnull=True) | Q(situacao='desagregado')
+    )
+    
+    # Alterar situação para "quebrado" (parado) quando não tem motorista
+    from django.db import transaction
+    with transaction.atomic():
+        cavalos_sem_motorista = cavalos.filter(motorista__isnull=True, situacao='ativo')
+        for cavalo in cavalos_sem_motorista:
+            cavalo.situacao = 'quebrado'  # Usando 'quebrado' como "parado"
+            cavalo.save(update_fields=['situacao'])
     
     # Filtros
     situacao_filter = request.GET.get('situacao', '')
@@ -447,8 +499,8 @@ def cavalo_list(request):
     # Aplicar filtros
     if situacao_filter:
         if situacao_filter == 'parado':
-            # Veículo parado = quebrado ou desagregado
-            cavalos = cavalos.filter(Q(situacao='quebrado') | Q(situacao='desagregado'))
+            # Veículo parado = quebrado (sem motorista)
+            cavalos = cavalos.filter(situacao='quebrado')
         else:
             cavalos = cavalos.filter(situacao=situacao_filter)
     
@@ -624,6 +676,7 @@ def carreta_create(request):
             lona_facil=request.POST.get('lona_facil', ''),
             step=request.POST.get('step', ''),
             tipo=request.POST.get('tipo', ''),
+            observacoes=request.POST.get('observacoes', ''),
         )
         # Processar arquivos
         if 'foto' in request.FILES:
@@ -662,6 +715,7 @@ def carreta_edit(request, pk):
         carreta.lona_facil = request.POST.get('lona_facil', '')
         carreta.step = request.POST.get('step', '')
         carreta.tipo = request.POST.get('tipo', '')
+        carreta.observacoes = request.POST.get('observacoes', '')
         # Processar arquivos
         if 'foto' in request.FILES:
             carreta.foto = request.FILES['foto']
