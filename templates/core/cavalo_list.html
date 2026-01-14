@@ -63,54 +63,47 @@
     #tabelaCavalos td {
         white-space: nowrap;
     }
-    /* Coluna de foto - largura fixa pequena */
+    /* Coluna Placa - largura compacta */
     #tabelaCavalos th:nth-child(1),
     #tabelaCavalos td:nth-child(1) {
-        width: 80px !important;
-        min-width: 80px !important;
-        max-width: 80px !important;
-    }
-    /* Coluna Placa - largura compacta */
-    #tabelaCavalos th:nth-child(2),
-    #tabelaCavalos td:nth-child(2) {
         width: 100px !important;
         min-width: 90px !important;
         max-width: 100px !important;
     }
     /* Coluna Ano - largura muito compacta */
-    #tabelaCavalos th:nth-child(3),
-    #tabelaCavalos td:nth-child(3) {
+    #tabelaCavalos th:nth-child(2),
+    #tabelaCavalos td:nth-child(2) {
         width: 70px !important;
         min-width: 60px !important;
         max-width: 70px !important;
         text-align: center;
     }
     /* Coluna Tipo - largura compacta */
-    #tabelaCavalos th:nth-child(4),
-    #tabelaCavalos td:nth-child(4) {
+    #tabelaCavalos th:nth-child(3),
+    #tabelaCavalos td:nth-child(3) {
         width: 95px !important;
         min-width: 80px !important;
         max-width: 95px !important;
         text-align: center;
     }
     /* Coluna Carreta - largura compacta */
-    #tabelaCavalos th:nth-child(5),
-    #tabelaCavalos td:nth-child(5) {
+    #tabelaCavalos th:nth-child(4),
+    #tabelaCavalos td:nth-child(4) {
         width: 100px !important;
         min-width: 90px !important;
         max-width: 100px !important;
     }
     /* Coluna Tipo Carreta - largura compacta */
-    #tabelaCavalos th:nth-child(6),
-    #tabelaCavalos td:nth-child(6) {
+    #tabelaCavalos th:nth-child(5),
+    #tabelaCavalos td:nth-child(5) {
         width: 120px !important;
         min-width: 100px !important;
         max-width: 120px !important;
         text-align: center;
     }
     /* Coluna Motorista - largura controlada */
-    #tabelaCavalos th:nth-child(7),
-    #tabelaCavalos td:nth-child(7) {
+    #tabelaCavalos th:nth-child(6),
+    #tabelaCavalos td:nth-child(6) {
         width: 250px !important;
         min-width: 150px !important;
         max-width: 250px !important;
@@ -119,32 +112,32 @@
         text-overflow: ellipsis;
     }
     /* Coluna CPF - largura compacta */
-    #tabelaCavalos th:nth-child(8),
-    #tabelaCavalos td:nth-child(8) {
+    #tabelaCavalos th:nth-child(7),
+    #tabelaCavalos td:nth-child(7) {
         width: 120px !important;
         min-width: 100px !important;
         max-width: 120px !important;
         text-align: center;
     }
     /* Coluna Fluxo - largura compacta */
-    #tabelaCavalos th:nth-child(9),
-    #tabelaCavalos td:nth-child(9) {
+    #tabelaCavalos th:nth-child(8),
+    #tabelaCavalos td:nth-child(8) {
         width: 100px !important;
         min-width: 90px !important;
         max-width: 100px !important;
         text-align: center;
     }
     /* Coluna Situação - largura compacta */
-    #tabelaCavalos th:nth-child(10),
-    #tabelaCavalos td:nth-child(10) {
+    #tabelaCavalos th:nth-child(9),
+    #tabelaCavalos td:nth-child(9) {
         width: 110px !important;
         min-width: 100px !important;
         max-width: 110px !important;
         text-align: center;
     }
     /* Coluna de observações - permite quebra de linha */
-    #tabelaCavalos th:nth-child(11),
-    #tabelaCavalos td:nth-child(11) {
+    #tabelaCavalos th:nth-child(10),
+    #tabelaCavalos td:nth-child(10) {
         white-space: normal;
         word-wrap: break-word;
         word-break: break-word;
@@ -320,7 +313,6 @@
                         <table id="tabelaCavalos" class="table table-hover">
                             <thead>
                                 <tr>
-                                    <th>Foto</th>
                                     <th>Placa</th>
                                     <th>Ano</th>
                                     <th>Tipo</th>
@@ -336,17 +328,6 @@
                             <tbody>
                                 {% for cavalo in cavalos %}
                                 <tr class="{% if cavalo.fluxo == 'minerio' %}fluxo-minerio{% elif cavalo.fluxo == 'escoria' %}fluxo-escoria{% endif %}">
-                                    <td>
-                                        {% if cavalo.foto %}
-                                            <img src="{{ cavalo.foto.url }}" 
-                                                 alt="Foto {{ cavalo.placa }}" 
-                                                 style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px; cursor: pointer;"
-                                                 onclick="window.open('{{ cavalo.foto.url }}', '_blank')"
-                                                 title="Clique para ampliar">
-                                        {% else %}
-                                            <span class="text-muted">-</span>
-                                        {% endif %}
-                                    </td>
                                     <td>
                                         <a href="{% url 'cavalo_detail' cavalo.pk %}" 
                                            style="text-decoration: none; font-weight: bold; color: #0d6efd;">
@@ -437,7 +418,7 @@
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="11" class="text-center text-muted py-4">
+                                    <td colspan="10" class="text-center text-muted py-4">
                                         <i class="bi bi-info-circle"></i> Nenhum cavalo cadastrado.
                                     </td>
                                 </tr>
@@ -461,65 +442,60 @@
             language: {
                 url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json'
             },
-            order: [[1, 'asc']], // Ordenar por Placa por padrão (coluna 1 agora)
+            order: [[0, 'asc']], // Ordenar por Placa por padrão
             pageLength: 25,
             autoWidth: false, // Desabilitar autoWidth para controle manual
             responsive: false, // Desabilitar responsive para melhor controle de largura
             scrollX: false, // Não usar scroll horizontal
             columnDefs: [
-                { 
-                    orderable: false,
-                    targets: [0], // Foto não ordenável
-                    width: '80px'
-                },
                 {
                     orderable: true,
-                    targets: [1], // Placa
+                    targets: [0], // Placa
                     width: '100px'
                 },
                 {
                     orderable: true,
-                    targets: [2], // Ano
+                    targets: [1], // Ano
                     width: '70px'
                 },
                 {
                     orderable: true,
-                    targets: [3], // Tipo
+                    targets: [2], // Tipo
                     width: '95px'
                 },
                 {
                     orderable: true,
-                    targets: [4], // Carreta
+                    targets: [3], // Carreta
                     width: '100px'
                 },
                 {
                     orderable: true,
-                    targets: [5], // Tipo Carreta
+                    targets: [4], // Tipo Carreta
                     width: '120px'
                 },
                 {
                     orderable: true,
-                    targets: [6], // Motorista
+                    targets: [5], // Motorista
                     width: '250px'
                 },
                 {
                     orderable: true,
-                    targets: [7], // CPF
+                    targets: [6], // CPF
                     width: '120px'
                 },
                 {
                     orderable: true,
-                    targets: [8], // Fluxo
+                    targets: [7], // Fluxo
                     width: '100px'
                 },
                 {
                     orderable: true,
-                    targets: [9], // Situação
+                    targets: [8], // Situação
                     width: '110px'
                 },
                 {
                     orderable: false,
-                    targets: [10], // Observações não ordenável
+                    targets: [9], // Observações não ordenável
                     width: 'auto',
                     className: 'text-wrap'
                 }

@@ -55,9 +55,19 @@ class HistoricoGestorAdmin(admin.ModelAdmin):
 
 @admin.register(Cavalo)
 class CavaloAdmin(admin.ModelAdmin):
-    list_display = ['placa', 'proprietario', 'gestor', 'situacao', 'tipo', 'carreta', 'fluxo']
+    list_display = [
+        'placa', 
+        'carreta_display', 
+        'motorista_display', 
+        'cpf_motorista', 
+        'tipo', 
+        'fluxo', 
+        'codigo_proprietario', 
+        'proprietario', 
+        'situacao'
+    ]
     list_filter = ['situacao', 'tipo', 'fluxo', 'proprietario', 'gestor']
-    search_fields = ['placa', 'proprietario__nome_razao_social']
+    search_fields = ['placa', 'proprietario__nome_razao_social', 'proprietario__codigo', 'motorista__nome', 'motorista__cpf']
     fieldsets = (
         ('Dados Básicos', {
             'fields': ('placa', 'ano', 'cor', 'fluxo', 'tipo', 'situacao')
@@ -74,6 +84,26 @@ class CavaloAdmin(admin.ModelAdmin):
         }),
     )
     readonly_fields = ['criado_em', 'atualizado_em']
+    
+    def carreta_display(self, obj):
+        """Exibe a placa da carreta"""
+        return obj.carreta.placa if obj.carreta else '-'
+    carreta_display.short_description = 'Carreta'
+    
+    def motorista_display(self, obj):
+        """Exibe o nome do motorista"""
+        return obj.motorista.nome if obj.motorista else '-'
+    motorista_display.short_description = 'Motorista'
+    
+    def cpf_motorista(self, obj):
+        """Exibe o CPF do motorista"""
+        return obj.motorista.cpf if obj.motorista and obj.motorista.cpf else '-'
+    cpf_motorista.short_description = 'CPF'
+    
+    def codigo_proprietario(self, obj):
+        """Exibe o código do proprietário"""
+        return obj.proprietario.codigo if obj.proprietario and obj.proprietario.codigo else '-'
+    codigo_proprietario.short_description = 'Código do Proprietário'
 
 
 @admin.register(Carreta)

@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -184,12 +185,18 @@
     <!-- Sidebar -->
     <div class="sidebar">
         <div class="sidebar-brand">
-            <h4><i class="bi bi-truck"></i> Agregamento</h4>
+            <img src="{% static 'logo.png' %}" alt="Logo" style="max-width: 150px; height: auto; margin-bottom: 10px; display: block; margin-left: auto; margin-right: auto;">
+            <h4>Agregamento</h4>
         </div>
         <ul class="sidebar-menu">
             <li>
                 <a href="{% url 'index' %}" class="{% if request.resolver_match.url_name == 'index' %}active{% endif %}">
                     <i class="bi bi-house-door"></i> Início
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'cavalo_list' %}" class="{% if 'cavalo' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="bi bi-truck"></i> Cavalos
                 </a>
             </li>
             {% if user.is_staff %}
@@ -198,15 +205,9 @@
                     <i class="bi bi-upload"></i> Upload de Arquivos
                 </a>
             </li>
-            {% endif %}
             <li>
                 <a href="{% url 'proprietario_list' %}" class="{% if 'proprietario' in request.resolver_match.url_name %}active{% endif %}">
                     <i class="bi bi-people"></i> Proprietários
-                </a>
-            </li>
-            <li>
-                <a href="{% url 'cavalo_list' %}" class="{% if 'cavalo' in request.resolver_match.url_name %}active{% endif %}">
-                    <i class="bi bi-truck"></i> Cavalos
                 </a>
             </li>
             <li>
@@ -214,13 +215,11 @@
                     <i class="bi bi-box"></i> Carretas
                 </a>
             </li>
-            {% if user.is_staff %}
             <li>
                 <a href="{% url 'motorista_list' %}" class="{% if 'motorista' in request.resolver_match.url_name %}active{% endif %}">
                     <i class="bi bi-person-badge"></i> Motoristas
                 </a>
             </li>
-            {% endif %}
             <li>
                 <a href="{% url 'gestor_list' %}" class="{% if 'gestor' in request.resolver_match.url_name %}active{% endif %}">
                     <i class="bi bi-person-gear"></i> Gestores
@@ -231,7 +230,6 @@
                     <i class="bi bi-clock-history"></i> Logs
                 </a>
             </li>
-            {% if user.is_staff %}
             <li>
                 <a href="{% url 'admin:index' %}" target="_blank">
                     <i class="bi bi-gear"></i> Admin
