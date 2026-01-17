@@ -189,6 +189,16 @@ def atualizar_status_parceiro_apos_salvar_cavalo(sender, instance, created, **kw
             cavalo=instance,
             data_inicio=date.today()
         )
+    
+    # Sincronizar com Google Sheets (em background)
+    try:
+        from .google_sheets import sync_cavalos_async
+        sync_cavalos_async()
+    except Exception as e:
+        # Não quebrar o fluxo se houver erro na sincronização
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Erro ao sincronizar com Google Sheets: {str(e)}")
 
 
 @receiver(post_delete, sender=Cavalo)
@@ -196,6 +206,16 @@ def atualizar_status_parceiro_apos_deletar_cavalo(sender, instance, **kwargs):
     """Atualiza status do parceiro automaticamente quando um cavalo é deletado"""
     if instance.proprietario:
         instance.proprietario.atualizar_status_automatico()
+    
+    # Sincronizar com Google Sheets (em background)
+    try:
+        from .google_sheets import sync_cavalos_async
+        sync_cavalos_async()
+    except Exception as e:
+        # Não quebrar o fluxo se houver erro na sincronização
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Erro ao sincronizar com Google Sheets: {str(e)}")
 
 
 @receiver(pre_save, sender=Motorista)

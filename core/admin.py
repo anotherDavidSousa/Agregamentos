@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.db.models import Case, When, Value, IntegerField, F, CharField
 from .models import (
     Proprietario, Gestor, Cavalo, Carreta, Motorista, LogCarreta,
     MarcaCavalo, ModeloCavalo, MarcaCarreta, ModeloCarreta,
@@ -84,6 +85,53 @@ class CavaloAdmin(admin.ModelAdmin):
         }),
     )
     readonly_fields = ['criado_em', 'atualizado_em']
+    
+    def get_queryset(self, request):
+        """Aplica a mesma ordenação personalizada do template"""
+        qs = super().get_queryset(request)
+        qs = qs.select_related('motorista', 'carreta', 'proprietario', 'gestor')
+        
+        # Ordenação personalizada:
+        # 1. Situação: ativo primeiro, depois parado
+        # 2. Fluxo: escória primeiro, depois minério
+        # 3. Tipo: toco primeiro, depois trucado
+        # 4. Nome do motorista: alfabético
+        qs = qs.annotate(
+            # Ordem de situação: ativo=0, parado=1
+            ordem_situacao=Case(
+                When(situacao='ativo', then=Value(0)),
+                When(situacao='parado', then=Value(1)),
+                default=Value(2),
+                output_field=IntegerField()
+            ),
+            # Ordem de fluxo: escória=0, minério=1
+            ordem_fluxo=Case(
+                When(fluxo='escoria', then=Value(0)),
+                When(fluxo='minerio', then=Value(1)),
+                default=Value(2),
+                output_field=IntegerField()
+            ),
+            # Ordem de tipo: toco=0, trucado=1
+            ordem_tipo=Case(
+                When(tipo='toco', then=Value(0)),
+                When(tipo='trucado', then=Value(1)),
+                default=Value(2),
+                output_field=IntegerField()
+            ),
+            # Nome do motorista para ordenação alfabética (usar string vazia se não tiver motorista)
+            motorista_nome_ordem=Case(
+                When(motorista__isnull=False, then=F('motorista__nome')),
+                default=Value(''),
+                output_field=CharField()
+            )
+        ).order_by(
+            'ordem_situacao',  # Ativos primeiro
+            'ordem_fluxo',      # Escória primeiro
+            'ordem_tipo',       # Tocos primeiro
+            'motorista_nome_ordem'  # Alfabético por nome do motorista
+        )
+        
+        return qs
     
     def carreta_display(self, obj):
         """Exibe a placa da carreta"""

@@ -151,3 +151,29 @@ CSRF_TRUSTED_ORIGINS = [
     'https://agregamentoipatinga.com',
     'https://www.agregamentoipatinga.com',
 ]
+
+# ============================================================================
+# CONFIGURAÇÕES DO GOOGLE SHEETS
+# ============================================================================
+# Para sincronizar a lista de cavalos com Google Sheets
+
+# Habilita/desabilita a sincronização automática
+# Coloque False para desabilitar temporariamente
+GOOGLE_SHEETS_ENABLED = config('GOOGLE_SHEETS_ENABLED', default=False, cast=bool)
+
+# Caminho para o arquivo JSON da Service Account do Google
+# Exemplo: os.path.join(BASE_DIR, 'credentials', 'service-account.json')
+# IMPORTANTE: Coloque o arquivo JSON na pasta do projeto e ajuste o caminho
+GOOGLE_SHEETS_CREDENTIALS_PATH = config(
+    'GOOGLE_SHEETS_CREDENTIALS_PATH',
+    default=os.path.join(BASE_DIR, 'google_credentials.json')
+)
+
+# ID da planilha do Google Sheets
+# Você encontra o ID na URL da planilha:
+# https://docs.google.com/spreadsheets/d/SEU_ID_AQUI/edit
+GOOGLE_SHEETS_SPREADSHEET_ID = config('GOOGLE_SHEETS_SPREADSHEET_ID', default='')
+
+# Nome da aba na planilha (padrão: 'Cavalos')
+# Se a aba não existir, será criada automaticamente
+GOOGLE_SHEETS_WORKSHEET_NAME = config('GOOGLE_SHEETS_WORKSHEET_NAME', default='Cavalos')
