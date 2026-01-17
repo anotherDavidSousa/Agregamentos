@@ -69,12 +69,12 @@ def _get_worksheet():
         except gspread.exceptions.WorksheetNotFound:
             logger.info(f"Aba '{worksheet_name}' não encontrada. Criando...")
             worksheet = spreadsheet.add_worksheet(title=worksheet_name, rows=1000, cols=20)
-            # Criar cabeçalhos na primeira vez
+            # Criar cabeçalhos na primeira vez (com colunas extras vazias C e D)
             headers = [
-                'PLACA', 'CARRETA', 'MOTORISTA', 'CPF', 'TIPO', 'FLUXO',
+                'PLACA', 'CARRETA', '', '', 'MOTORISTA', 'CPF', 'TIPO', 'FLUXO',
                 'CÓDIGO DO PROPRIETÁRIO', 'PROPRIETÁRIO', 'SITUAÇÃO'
             ]
-            worksheet.update('A1:I1', [headers], value_input_option='RAW')
+            worksheet.update('A1:K1', [headers], value_input_option='RAW')
         
         return worksheet
         
@@ -104,10 +104,44 @@ def _find_row_by_placa(worksheet, placa):
         return None
 
 
+def _get_column_mapping():
+    """
+    Define o mapeamento de colunas do banco de dados para as colunas da planilha
+    
+    Estrutura da planilha:
+    - Coluna A: PLACA (cavalo)
+    - Coluna B: CARRETA
+    - Coluna C: [Coluna extra do usuário - NÃO TOCAR]
+    - Coluna D: [Coluna extra do usuário - NÃO TOCAR]
+    - Coluna E: MOTORISTA
+    - Coluna F: CPF
+    - Coluna G: TIPO
+    - Coluna H: FLUXO
+    - Coluna I: CÓDIGO DO PROPRIETÁRIO
+    - Coluna J: PROPRIETÁRIO
+    - Coluna K: SITUAÇÃO
+    
+    Retorna um dicionário com os dados do cavalo mapeados para as colunas corretas
+    """
+    return {
+        'A': 'placa',           # PLACA (cavalo)
+        'B': 'carreta',        # CARRETA
+        # 'C': None,            # Coluna extra do usuário - NÃO TOCAR
+        # 'D': None,            # Coluna extra do usuário - NÃO TOCAR
+        'E': 'motorista',      # MOTORISTA
+        'F': 'cpf',            # CPF
+        'G': 'tipo',           # TIPO
+        'H': 'fluxo',          # FLUXO
+        'I': 'codigo_proprietario',  # CÓDIGO DO PROPRIETÁRIO
+        'J': 'proprietario',   # PROPRIETÁRIO
+        'K': 'situacao',       # SITUAÇÃO
+    }
+
+
 def _get_cavalo_row_data(cavalo):
     """
     Prepara os dados de uma linha do cavalo no formato da planilha
-    Retorna uma lista com os valores das colunas
+    Retorna um dicionário com os valores mapeados por coluna (A, B, E, F, etc.)
     """
     # Tratar motorista de forma segura (OneToOne reverso pode lançar exceção)
     try:
@@ -117,17 +151,19 @@ def _get_cavalo_row_data(cavalo):
         motorista_nome = '-'
         motorista_cpf = '-'
     
-    return [
-        cavalo.placa or '-',
-        cavalo.carreta.placa if cavalo.carreta else '-',
-        motorista_nome,
-        motorista_cpf,
-        cavalo.get_tipo_display() if cavalo.tipo else '-',
-        cavalo.get_fluxo_display() if cavalo.fluxo else '-',
-        cavalo.proprietario.codigo if cavalo.proprietario and cavalo.proprietario.codigo else '-',
-        cavalo.proprietario.nome_razao_social if cavalo.proprietario else '-',
-        cavalo.get_situacao_display() if cavalo.situacao else '-',
-    ]
+    # Retornar dicionário mapeado por coluna
+    return {
+        'A': cavalo.placa or '-',
+        'B': cavalo.carreta.placa if cavalo.carreta else '-',
+        # C e D são colunas extras do usuário - não preencher
+        'E': motorista_nome,
+        'F': motorista_cpf,
+        'G': cavalo.get_tipo_display() if cavalo.tipo else '-',
+        'H': cavalo.get_fluxo_display() if cavalo.fluxo else '-',
+        'I': cavalo.proprietario.codigo if cavalo.proprietario and cavalo.proprietario.codigo else '-',
+        'J': cavalo.proprietario.nome_razao_social if cavalo.proprietario else '-',
+        'K': cavalo.get_situacao_display() if cavalo.situacao else '-',
+    }
 
 
 def _get_insert_position(worksheet, cavalo):
@@ -242,10 +278,20 @@ def update_cavalo_in_sheets(cavalo_pk):
         row_num = _find_row_by_placa(worksheet, cavalo.placa)
         
         if row_num:
-            # Atualizar linha existente
-            row_data = _get_cavalo_row_data(cavalo)
-            worksheet.update(f'A{row_num}:I{row_num}', [row_data], value_input_option='RAW')
-            logger.info(f"Cavalo {cavalo.placa} atualizado na linha {row_num} do Google Sheets")
+            # Atualizar linha existente - apenas as colunas do banco de dados
+            row_data_dict = _get_cavalo_row_data(cavalo)
+            
+            # Atualizar cada coluna individualmente (pulando C e D que são extras do usuário)
+            updates = []
+            for col, value in row_data_dict.items():
+                updates.append({
+                    'range': f'{col}{row_num}',
+                    'values': [[value]]
+                })
+            
+            # Fazer update em lote para todas as colunas de uma vez
+            worksheet.batch_update(updates, value_input_option='RAW')
+            logger.info(f"Cavalo {cavalo.placa} atualizado na linha {row_num} do Google Sheets (colunas: {', '.join(row_data_dict.keys())})")
             return True
         else:
             # Não encontrou na planilha, adicionar nova linha
@@ -294,11 +340,27 @@ def add_cavalo_to_sheets(cavalo_pk):
         # Calcular posição de inserção
         row_num = _get_insert_position(worksheet, cavalo)
         
-        # Preparar dados
-        row_data = _get_cavalo_row_data(cavalo)
+        # Preparar dados - criar lista completa com colunas vazias para C e D
+        row_data_dict = _get_cavalo_row_data(cavalo)
+        
+        # Criar lista completa de valores (incluindo colunas vazias C e D)
+        # Ordem: A, B, C (vazio), D (vazio), E, F, G, H, I, J, K
+        row_data_list = [
+            row_data_dict.get('A', ''),
+            row_data_dict.get('B', ''),
+            '',  # Coluna C - extra do usuário (vazia)
+            '',  # Coluna D - extra do usuário (vazia)
+            row_data_dict.get('E', ''),
+            row_data_dict.get('F', ''),
+            row_data_dict.get('G', ''),
+            row_data_dict.get('H', ''),
+            row_data_dict.get('I', ''),
+            row_data_dict.get('J', ''),
+            row_data_dict.get('K', ''),
+        ]
         
         # Inserir linha na posição correta
-        worksheet.insert_row(row_data, row_num, value_input_option='RAW')
+        worksheet.insert_row(row_data_list, row_num, value_input_option='RAW')
         logger.info(f"Cavalo {cavalo.placa} adicionado na linha {row_num} do Google Sheets")
         return True
         
@@ -385,24 +447,51 @@ def sync_cavalos_to_sheets():
             'motorista_nome_ordem'
         )
         
-        # Preparar dados
+        # Preparar cabeçalhos (incluindo colunas extras vazias)
         headers = [
-            'PLACA', 'CARRETA', 'MOTORISTA', 'CPF', 'TIPO', 'FLUXO',
+            'PLACA', 'CARRETA', '', '', 'MOTORISTA', 'CPF', 'TIPO', 'FLUXO',
             'CÓDIGO DO PROPRIETÁRIO', 'PROPRIETÁRIO', 'SITUAÇÃO'
         ]
         
         # Verificar cabeçalhos
         try:
             first_row = worksheet.row_values(1)
-            if not first_row:
-                worksheet.update('A1:I1', [headers], value_input_option='RAW')
+            if not first_row or len(first_row) < 11:
+                # Atualizar apenas as colunas do banco de dados, preservando C e D se existirem
+                header_updates = []
+                header_updates.append({'range': 'A1', 'values': [['PLACA']]})
+                header_updates.append({'range': 'B1', 'values': [['CARRETA']]})
+                # C e D não são atualizados (preservados)
+                header_updates.append({'range': 'E1', 'values': [['MOTORISTA']]})
+                header_updates.append({'range': 'F1', 'values': [['CPF']]})
+                header_updates.append({'range': 'G1', 'values': [['TIPO']]})
+                header_updates.append({'range': 'H1', 'values': [['FLUXO']]})
+                header_updates.append({'range': 'I1', 'values': [['CÓDIGO DO PROPRIETÁRIO']]})
+                header_updates.append({'range': 'J1', 'values': [['PROPRIETÁRIO']]})
+                header_updates.append({'range': 'K1', 'values': [['SITUAÇÃO']]})
+                worksheet.batch_update(header_updates, value_input_option='RAW')
         except Exception:
-            worksheet.update('A1:I1', [headers], value_input_option='RAW')
+            pass
         
         # Preparar dados
         data_rows = []
         for cavalo in cavalos:
-            data_rows.append(_get_cavalo_row_data(cavalo))
+            row_data_dict = _get_cavalo_row_data(cavalo)
+            # Criar lista completa com colunas vazias para C e D
+            row_data_list = [
+                row_data_dict.get('A', ''),
+                row_data_dict.get('B', ''),
+                '',  # Coluna C - extra do usuário
+                '',  # Coluna D - extra do usuário
+                row_data_dict.get('E', ''),
+                row_data_dict.get('F', ''),
+                row_data_dict.get('G', ''),
+                row_data_dict.get('H', ''),
+                row_data_dict.get('I', ''),
+                row_data_dict.get('J', ''),
+                row_data_dict.get('K', ''),
+            ]
+            data_rows.append(row_data_list)
         
         # Limpar linhas antigas (mantém cabeçalho)
         try:
