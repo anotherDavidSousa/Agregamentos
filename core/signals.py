@@ -190,10 +190,15 @@ def atualizar_status_parceiro_apos_salvar_cavalo(sender, instance, created, **kw
             data_inicio=date.today()
         )
     
-    # Sincronizar com Google Sheets (em background)
+    # Sincronizar com Google Sheets (em background) - apenas este cavalo
     try:
-        from .google_sheets import sync_cavalos_async
-        sync_cavalos_async()
+        from .google_sheets import update_cavalo_async, add_cavalo_async
+        if created:
+            # Novo cavalo: adicionar
+            add_cavalo_async(instance.pk)
+        else:
+            # Cavalo existente: atualizar
+            update_cavalo_async(instance.pk)
     except Exception as e:
         # Não quebrar o fluxo se houver erro na sincronização
         import logging
@@ -207,10 +212,11 @@ def atualizar_status_parceiro_apos_deletar_cavalo(sender, instance, **kwargs):
     if instance.proprietario:
         instance.proprietario.atualizar_status_automatico()
     
-    # Sincronizar com Google Sheets (em background)
+    # Sincronizar com Google Sheets (em background) - deletar apenas este cavalo
     try:
-        from .google_sheets import sync_cavalos_async
-        sync_cavalos_async()
+        from .google_sheets import delete_cavalo_async
+        if instance.placa:
+            delete_cavalo_async(instance.placa)
     except Exception as e:
         # Não quebrar o fluxo se houver erro na sincronização
         import logging
