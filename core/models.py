@@ -86,11 +86,18 @@ class Cavalo(models.Model):
         ('trucado', 'Trucado'),
     ]
 
+    CLASSIFICACAO_CHOICES = [
+        ('agregado', 'Agregado'),
+        ('frota', 'Frota Própria'),
+        ('terceiro', 'Terceirizado'),
+    ]
+
     placa = models.CharField(max_length=10, blank=True, null=True, unique=True)
     ano = models.IntegerField(blank=True, null=True)
     cor = models.CharField(max_length=50, blank=True, null=True)
     fluxo = models.CharField(max_length=20, choices=FLUXO_CHOICES, blank=True, null=True)
     tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, blank=True, null=True, verbose_name='Tipo')
+    classificacao = models.CharField(max_length=20, choices=CLASSIFICACAO_CHOICES, blank=True, null=True, verbose_name='Classificação')
     foto = models.ImageField(upload_to='cavalos/fotos/', blank=True, null=True, verbose_name='Foto')
     carreta = models.OneToOneField(
         'Carreta',

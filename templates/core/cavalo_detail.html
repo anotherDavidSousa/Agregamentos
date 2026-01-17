@@ -86,6 +86,16 @@
                                     </td>
                                 </tr>
                                 <tr>
+                                    <th>Classificação:</th>
+                                    <td>
+                                        {% if cavalo.classificacao %}
+                                            <span class="badge bg-secondary">{{ cavalo.get_classificacao_display }}</span>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
                                     <th>Situação:</th>
                                     <td>
                                         {% if cavalo.situacao %}

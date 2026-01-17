@@ -67,11 +67,11 @@ class CavaloAdmin(admin.ModelAdmin):
         'proprietario', 
         'situacao'
     ]
-    list_filter = ['situacao', 'tipo', 'fluxo', 'proprietario', 'gestor']
+    list_filter = ['situacao', 'tipo', 'fluxo', 'classificacao', 'proprietario', 'gestor']
     search_fields = ['placa', 'proprietario__nome_razao_social', 'proprietario__codigo', 'motorista__nome', 'motorista__cpf']
     fieldsets = (
         ('Dados Básicos', {
-            'fields': ('placa', 'ano', 'cor', 'fluxo', 'tipo', 'situacao')
+            'fields': ('placa', 'ano', 'cor', 'fluxo', 'tipo', 'classificacao', 'situacao')
         }),
         ('Relacionamentos', {
             'fields': ('proprietario', 'gestor', 'carreta')

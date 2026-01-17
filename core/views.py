@@ -590,6 +590,7 @@ def cavalo_create(request):
             cor=request.POST.get('cor', ''),
             fluxo=request.POST.get('fluxo', ''),
             tipo=request.POST.get('tipo', ''),
+            classificacao=request.POST.get('classificacao', ''),
             situacao=request.POST.get('situacao', ''),
             proprietario_id=request.POST.get('proprietario') or None,
             gestor_id=request.POST.get('gestor') or None,
@@ -624,6 +625,7 @@ def cavalo_edit(request, pk):
         cavalo.cor = request.POST.get('cor', '')
         cavalo.fluxo = request.POST.get('fluxo', '')
         cavalo.tipo = request.POST.get('tipo', '')
+        cavalo.classificacao = request.POST.get('classificacao', '')
         cavalo.situacao = request.POST.get('situacao', '')
         cavalo.proprietario_id = request.POST.get('proprietario') or None
         cavalo.gestor_id = request.POST.get('gestor') or None

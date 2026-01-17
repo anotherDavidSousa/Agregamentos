@@ -72,9 +72,9 @@ def _get_worksheet():
             # Criar cabeçalhos na primeira vez (com colunas extras vazias C e D)
             headers = [
                 'PLACA', 'CARRETA', '', '', 'MOTORISTA', 'CPF', 'TIPO', 'FLUXO',
-                'CÓDIGO DO PROPRIETÁRIO', 'PROPRIETÁRIO', 'SITUAÇÃO'
+                'CLASSIFICAÇÃO', 'CÓDIGO DO PROPRIETÁRIO', 'PROPRIETÁRIO', 'SITUAÇÃO'
             ]
-            worksheet.update('A1:K1', [headers], value_input_option='RAW')
+            worksheet.update('A1:L1', [headers], value_input_option='RAW')
         
         return worksheet
         
@@ -160,9 +160,10 @@ def _get_cavalo_row_data(cavalo):
         'F': motorista_cpf,
         'G': cavalo.get_tipo_display() if cavalo.tipo else '-',
         'H': cavalo.get_fluxo_display() if cavalo.fluxo else '-',
-        'I': cavalo.proprietario.codigo if cavalo.proprietario and cavalo.proprietario.codigo else '-',
-        'J': cavalo.proprietario.nome_razao_social if cavalo.proprietario else '-',
-        'K': cavalo.get_situacao_display() if cavalo.situacao else '-',
+        'I': cavalo.get_classificacao_display() if cavalo.classificacao else '-',
+        'J': cavalo.proprietario.codigo if cavalo.proprietario and cavalo.proprietario.codigo else '-',
+        'K': cavalo.proprietario.nome_razao_social if cavalo.proprietario else '-',
+        'L': cavalo.get_situacao_display() if cavalo.situacao else '-',
     }
 
 
@@ -343,21 +344,22 @@ def add_cavalo_to_sheets(cavalo_pk):
         # Preparar dados - criar lista completa com colunas vazias para C e D
         row_data_dict = _get_cavalo_row_data(cavalo)
         
-        # Criar lista completa de valores (incluindo colunas vazias C e D)
-        # Ordem: A, B, C (vazio), D (vazio), E, F, G, H, I, J, K
-        row_data_list = [
-            row_data_dict.get('A', ''),
-            row_data_dict.get('B', ''),
-            '',  # Coluna C - extra do usuário (vazia)
-            '',  # Coluna D - extra do usuário (vazia)
-            row_data_dict.get('E', ''),
-            row_data_dict.get('F', ''),
-            row_data_dict.get('G', ''),
-            row_data_dict.get('H', ''),
-            row_data_dict.get('I', ''),
-            row_data_dict.get('J', ''),
-            row_data_dict.get('K', ''),
-        ]
+            # Criar lista completa de valores (incluindo colunas vazias C e D)
+            # Ordem: A, B, C (vazio), D (vazio), E, F, G, H, I, J, K, L
+            row_data_list = [
+                row_data_dict.get('A', ''),
+                row_data_dict.get('B', ''),
+                '',  # Coluna C - extra do usuário (vazia)
+                '',  # Coluna D - extra do usuário (vazia)
+                row_data_dict.get('E', ''),
+                row_data_dict.get('F', ''),
+                row_data_dict.get('G', ''),
+                row_data_dict.get('H', ''),
+                row_data_dict.get('I', ''),
+                row_data_dict.get('J', ''),
+                row_data_dict.get('K', ''),
+                row_data_dict.get('L', ''),
+            ]
         
         # Inserir linha na posição correta
         worksheet.insert_row(row_data_list, row_num, value_input_option='RAW')
@@ -450,7 +452,7 @@ def sync_cavalos_to_sheets():
         # Preparar cabeçalhos (incluindo colunas extras vazias)
         headers = [
             'PLACA', 'CARRETA', '', '', 'MOTORISTA', 'CPF', 'TIPO', 'FLUXO',
-            'CÓDIGO DO PROPRIETÁRIO', 'PROPRIETÁRIO', 'SITUAÇÃO'
+            'CLASSIFICAÇÃO', 'CÓDIGO DO PROPRIETÁRIO', 'PROPRIETÁRIO', 'SITUAÇÃO'
         ]
         
         # Verificar cabeçalhos
@@ -466,9 +468,10 @@ def sync_cavalos_to_sheets():
                 header_updates.append({'range': 'F1', 'values': [['CPF']]})
                 header_updates.append({'range': 'G1', 'values': [['TIPO']]})
                 header_updates.append({'range': 'H1', 'values': [['FLUXO']]})
-                header_updates.append({'range': 'I1', 'values': [['CÓDIGO DO PROPRIETÁRIO']]})
-                header_updates.append({'range': 'J1', 'values': [['PROPRIETÁRIO']]})
-                header_updates.append({'range': 'K1', 'values': [['SITUAÇÃO']]})
+                header_updates.append({'range': 'I1', 'values': [['CLASSIFICAÇÃO']]})
+                header_updates.append({'range': 'J1', 'values': [['CÓDIGO DO PROPRIETÁRIO']]})
+                header_updates.append({'range': 'K1', 'values': [['PROPRIETÁRIO']]})
+                header_updates.append({'range': 'L1', 'values': [['SITUAÇÃO']]})
                 worksheet.batch_update(header_updates, value_input_option='RAW')
         except Exception:
             pass
