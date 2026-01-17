@@ -66,9 +66,17 @@ def _get_worksheet():
         # Tentar abrir aba, criar se não existir
         try:
             worksheet = spreadsheet.worksheet(worksheet_name)
+            # Verificar e expandir se necessário (precisa ter pelo menos 12 colunas: A-L)
+            try:
+                current_cols = worksheet.col_count
+                if current_cols < 12:
+                    logger.info(f"Expandindo planilha existente de {current_cols} para 12 colunas...")
+                    worksheet.resize(rows=worksheet.row_count, cols=12)
+            except Exception as e:
+                logger.warning(f"Erro ao expandir planilha existente: {str(e)}")
         except gspread.exceptions.WorksheetNotFound:
             logger.info(f"Aba '{worksheet_name}' não encontrada. Criando...")
-            worksheet = spreadsheet.add_worksheet(title=worksheet_name, rows=1000, cols=20)
+            worksheet = spreadsheet.add_worksheet(title=worksheet_name, rows=1000, cols=12)
             # Criar cabeçalhos na primeira vez (com colunas extras vazias C e D)
             headers = [
                 'PLACA', 'CARRETA', '', '', 'MOTORISTA', 'CPF', 'TIPO', 'FLUXO',
@@ -282,6 +290,15 @@ def update_cavalo_in_sheets(cavalo_pk):
             # Atualizar linha existente - apenas as colunas do banco de dados
             row_data_dict = _get_cavalo_row_data(cavalo)
             
+            # Verificar e expandir planilha se necessário (precisa ter pelo menos 12 colunas: A-L)
+            try:
+                current_cols = worksheet.col_count
+                if current_cols < 12:
+                    logger.info(f"Expandindo planilha de {current_cols} para 12 colunas...")
+                    worksheet.resize(rows=worksheet.row_count, cols=12)
+            except Exception as e:
+                logger.warning(f"Erro ao expandir planilha: {str(e)}")
+            
             # Atualizar cada coluna individualmente (pulando C e D que são extras do usuário)
             updates = []
             for col, value in row_data_dict.items():
@@ -340,6 +357,15 @@ def add_cavalo_to_sheets(cavalo_pk):
         
         # Calcular posição de inserção
         row_num = _get_insert_position(worksheet, cavalo)
+        
+        # Verificar e expandir planilha se necessário (precisa ter pelo menos 12 colunas: A-L)
+        try:
+            current_cols = worksheet.col_count
+            if current_cols < 12:
+                logger.info(f"Expandindo planilha de {current_cols} para 12 colunas...")
+                worksheet.resize(rows=worksheet.row_count, cols=12)
+        except Exception as e:
+            logger.warning(f"Erro ao expandir planilha: {str(e)}")
         
         # Preparar dados - criar lista completa com colunas vazias para C e D
         row_data_dict = _get_cavalo_row_data(cavalo)
@@ -412,6 +438,15 @@ def sync_cavalos_to_sheets():
         worksheet = _get_worksheet()
         if not worksheet:
             return False
+        
+        # Verificar e expandir planilha se necessário (precisa ter pelo menos 12 colunas: A-L)
+        try:
+            current_cols = worksheet.col_count
+            if current_cols < 12:
+                logger.info(f"Expandindo planilha de {current_cols} para 12 colunas...")
+                worksheet.resize(rows=worksheet.row_count, cols=12)
+        except Exception as e:
+            logger.warning(f"Erro ao expandir planilha: {str(e)}")
         
         from .models import Cavalo
         
