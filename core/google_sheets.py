@@ -142,11 +142,20 @@ def sync_cavalos_to_sheets():
         rows = [headers]  # Primeira linha são os cabeçalhos
         
         for cavalo in cavalos:
+            # Tratar motorista de forma segura (OneToOne reverso pode lançar exceção)
+            try:
+                motorista_nome = cavalo.motorista.nome if cavalo.motorista else '-'
+                motorista_cpf = cavalo.motorista.cpf if cavalo.motorista and cavalo.motorista.cpf else '-'
+            except Exception:
+                # Se não tem motorista, o Django lança RelatedObjectDoesNotExist
+                motorista_nome = '-'
+                motorista_cpf = '-'
+            
             row = [
                 cavalo.placa or '-',
                 cavalo.carreta.placa if cavalo.carreta else '-',
-                cavalo.motorista.nome if cavalo.motorista else '-',
-                cavalo.motorista.cpf if cavalo.motorista and cavalo.motorista.cpf else '-',
+                motorista_nome,
+                motorista_cpf,
                 cavalo.get_tipo_display() if cavalo.tipo else '-',
                 cavalo.get_fluxo_display() if cavalo.fluxo else '-',
                 cavalo.proprietario.codigo if cavalo.proprietario and cavalo.proprietario.codigo else '-',
