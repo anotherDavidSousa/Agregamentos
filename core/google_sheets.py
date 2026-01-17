@@ -344,22 +344,22 @@ def add_cavalo_to_sheets(cavalo_pk):
         # Preparar dados - criar lista completa com colunas vazias para C e D
         row_data_dict = _get_cavalo_row_data(cavalo)
         
-            # Criar lista completa de valores (incluindo colunas vazias C e D)
-            # Ordem: A, B, C (vazio), D (vazio), E, F, G, H, I, J, K, L
-            row_data_list = [
-                row_data_dict.get('A', ''),
-                row_data_dict.get('B', ''),
-                '',  # Coluna C - extra do usuário (vazia)
-                '',  # Coluna D - extra do usuário (vazia)
-                row_data_dict.get('E', ''),
-                row_data_dict.get('F', ''),
-                row_data_dict.get('G', ''),
-                row_data_dict.get('H', ''),
-                row_data_dict.get('I', ''),
-                row_data_dict.get('J', ''),
-                row_data_dict.get('K', ''),
-                row_data_dict.get('L', ''),
-            ]
+        # Criar lista completa de valores (incluindo colunas vazias C e D)
+        # Ordem: A, B, C (vazio), D (vazio), E, F, G, H, I, J, K, L
+        row_data_list = [
+            row_data_dict.get('A', ''),
+            row_data_dict.get('B', ''),
+            '',  # Coluna C - extra do usuário (vazia)
+            '',  # Coluna D - extra do usuário (vazia)
+            row_data_dict.get('E', ''),
+            row_data_dict.get('F', ''),
+            row_data_dict.get('G', ''),
+            row_data_dict.get('H', ''),
+            row_data_dict.get('I', ''),
+            row_data_dict.get('J', ''),
+            row_data_dict.get('K', ''),
+            row_data_dict.get('L', ''),
+        ]
         
         # Inserir linha na posição correta
         worksheet.insert_row(row_data_list, row_num, value_input_option='RAW')
@@ -493,6 +493,7 @@ def sync_cavalos_to_sheets():
                 row_data_dict.get('I', ''),
                 row_data_dict.get('J', ''),
                 row_data_dict.get('K', ''),
+                row_data_dict.get('L', ''),
             ]
             data_rows.append(row_data_list)
         
