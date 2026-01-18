@@ -199,6 +199,12 @@ class Carreta(models.Model):
         ('vanderleia', 'Vanderleia'),
     ]
 
+    CLASSIFICACAO_CHOICES = [
+        ('agregado', 'Agregamento'),
+        ('frota', 'Frota'),
+        ('terceiro', 'Terceiro'),
+    ]
+
     placa = models.CharField(max_length=10, blank=True, null=True, unique=True)
     marca = models.CharField(max_length=100, blank=True, null=True)
     modelo = models.CharField(max_length=100, blank=True, null=True)
