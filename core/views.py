@@ -665,7 +665,7 @@ def cavalo_edit(request, pk):
         carreta_id = request.POST.get('carreta') or None
         if carreta_id:
             try:
-            carreta = Carreta.objects.get(pk=carreta_id)
+                carreta = Carreta.objects.get(pk=carreta_id)
                 # Validar compatibilidade de classificação
                 if cavalo.classificacao and carreta.classificacao:
                     if cavalo.classificacao != carreta.classificacao:
@@ -695,7 +695,7 @@ def cavalo_edit(request, pk):
                         cavalo_anterior.save()
                 except Cavalo.DoesNotExist:
                     pass
-            cavalo.carreta = carreta
+                cavalo.carreta = carreta
             except Carreta.DoesNotExist:
                 cavalo.carreta = None
         else:
