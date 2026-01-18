@@ -609,11 +609,15 @@ def cavalo_create(request):
                 # Validar compatibilidade de classificação
                 if cavalo.classificacao and carreta.classificacao:
                     if cavalo.classificacao != carreta.classificacao:
-                        messages.error(request, f'Erro: A carreta selecionada é de "{carreta.get_classificacao_display}" mas o cavalo é "{cavalo.get_classificacao_display}". Eles devem ter a mesma classificação.')
+                        messages.error(request, f'Erro: A carreta selecionada é de "{carreta.get_classificacao_display()}" mas o cavalo é "{cavalo.get_classificacao_display()}". Eles devem ter a mesma classificação.')
                         proprietarios = Proprietario.objects.all()
                         gestores = Gestor.objects.all()
                         carretas_acopladas_ids = Cavalo.objects.exclude(carreta__isnull=True).values_list('carreta_id', flat=True)
-                        carretas_disponiveis = Carreta.objects.exclude(id__in=carretas_acopladas_ids)
+                        # Filtrar carretas pela classificação do cavalo
+                        if cavalo.classificacao:
+                            carretas_disponiveis = Carreta.objects.filter(classificacao=cavalo.classificacao).exclude(id__in=carretas_acopladas_ids)
+                        else:
+                            carretas_disponiveis = Carreta.objects.exclude(id__in=carretas_acopladas_ids)
                         return render(request, 'core/cavalo_form.html', {
                             'form_type': 'create',
                             'proprietarios': proprietarios,
@@ -669,7 +673,7 @@ def cavalo_edit(request, pk):
                 # Validar compatibilidade de classificação
                 if cavalo.classificacao and carreta.classificacao:
                     if cavalo.classificacao != carreta.classificacao:
-                        messages.error(request, f'Erro: A carreta selecionada é de "{carreta.get_classificacao_display}" mas o cavalo é "{cavalo.get_classificacao_display}". Eles devem ter a mesma classificação.')
+                        messages.error(request, f'Erro: A carreta selecionada é de "{carreta.get_classificacao_display()}" mas o cavalo é "{cavalo.get_classificacao_display()}". Eles devem ter a mesma classificação.')
                         proprietarios = Proprietario.objects.all()
                         gestores = Gestor.objects.all()
                         carretas_acopladas_ids = Cavalo.objects.exclude(carreta__isnull=True).exclude(pk=pk).values_list('carreta_id', flat=True)
@@ -708,7 +712,14 @@ def cavalo_edit(request, pk):
     gestores = Gestor.objects.all()
     # Carretas disponíveis + a carreta atual do cavalo (se houver)
     carretas_acopladas_ids = Cavalo.objects.exclude(carreta__isnull=True).exclude(pk=cavalo.pk).values_list('carreta_id', flat=True)
-    carretas_disponiveis = Carreta.objects.exclude(id__in=carretas_acopladas_ids)
+    # Filtrar carretas pela classificação do cavalo (se houver)
+    if cavalo.classificacao:
+        carretas_disponiveis = Carreta.objects.filter(classificacao=cavalo.classificacao).exclude(id__in=carretas_acopladas_ids)
+        # Incluir a carreta atual se houver (mesmo que não esteja na classificação correta, para não perder a referência)
+        if cavalo.carreta:
+            carretas_disponiveis = carretas_disponiveis | Carreta.objects.filter(pk=cavalo.carreta.pk)
+    else:
+        carretas_disponiveis = Carreta.objects.exclude(id__in=carretas_acopladas_ids)
     return render(request, 'core/cavalo_form.html', {
         'cavalo': cavalo,
         'form_type': 'edit',

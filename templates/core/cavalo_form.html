@@ -116,6 +116,20 @@
             var options = selectCarreta.getElementsByTagName('option');
             var selectedValue = selectCarreta.value;
             var selectedOptionHidden = false;
+            var hasVisibleOptions = false;
+            
+            // Mapeamento de classificação: cavalo -> carreta
+            // Agregado -> Agregamento
+            // Frota -> Frota
+            // Terceiro -> Terceiro
+            var classificacaoMap = {
+                'agregado': 'agregado',  // Cavalo Agregado usa carreta Agregamento (mesmo valor)
+                'frota': 'frota',
+                'terceiro': 'terceiro'
+            };
+            
+            // Determinar qual classificação de carreta é compatível
+            var classificacaoCarretaEsperada = classificacaoMap[classificacaoCavalo] || null;
             
             // Mostrar/ocultar opções baseado na classificação
             for (var i = 0; i < options.length; i++) {
@@ -123,17 +137,27 @@
                 if (option.value === '') {
                     // Sempre mostrar opção "Nenhuma"
                     option.style.display = '';
+                    hasVisibleOptions = true;
                 } else {
                     var classificacaoCarreta = option.getAttribute('data-classificacao');
-                    // Se não tem classificação do cavalo, mostrar todas (compatibilidade)
-                    // Se tem classificação, mostrar apenas as compatíveis
-                    if (!classificacaoCavalo || !classificacaoCarreta || classificacaoCarreta === classificacaoCavalo) {
-                        option.style.display = '';
-                    } else {
+                    
+                    // Se não tem classificação do cavalo selecionada, ocultar todas as carretas
+                    // (força o usuário a selecionar a classificação primeiro)
+                    if (!classificacaoCavalo) {
                         option.style.display = 'none';
-                        // Verificar se a opção selecionada foi ocultada
                         if (option.value === selectedValue) {
                             selectedOptionHidden = true;
+                        }
+                    } else {
+                        // Se tem classificação, mostrar apenas carretas compatíveis
+                        if (classificacaoCarreta === classificacaoCarretaEsperada) {
+                            option.style.display = '';
+                            hasVisibleOptions = true;
+                        } else {
+                            option.style.display = 'none';
+                            if (option.value === selectedValue) {
+                                selectedOptionHidden = true;
+                            }
                         }
                     }
                 }
@@ -142,6 +166,24 @@
             // Se a opção selecionada foi ocultada, limpar seleção
             if (selectedOptionHidden) {
                 selectCarreta.value = '';
+            }
+            
+            // Se não há opções visíveis (além de "Nenhuma"), mostrar mensagem
+            if (classificacaoCavalo && !hasVisibleOptions) {
+                // Adicionar mensagem informativa se não houver carretas disponíveis
+                var helpText = selectCarreta.parentElement.querySelector('.form-text');
+                if (!helpText || !helpText.textContent.includes('Nenhuma carreta')) {
+                    var newHelpText = document.createElement('small');
+                    newHelpText.className = 'form-text text-warning d-block mt-1';
+                    newHelpText.textContent = '⚠ Nenhuma carreta disponível para esta classificação.';
+                    selectCarreta.parentElement.appendChild(newHelpText);
+                }
+            } else {
+                // Remover mensagem de aviso se houver
+                var warningText = selectCarreta.parentElement.querySelector('.text-warning');
+                if (warningText) {
+                    warningText.remove();
+                }
             }
         }
         
