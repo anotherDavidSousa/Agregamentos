@@ -67,6 +67,21 @@
                         
                         <div class="row">
                             <div class="col-md-6 mb-3">
+                                <label for="classificacao" class="form-label">Classificação <span class="text-danger">*</span></label>
+                                <select class="form-select" id="classificacao" name="classificacao" required>
+                                    <option value="">Selecione...</option>
+                                    <option value="agregado" {% if carreta and carreta.classificacao == 'agregado' %}selected{% endif %}>Agregamento</option>
+                                    <option value="frota" {% if carreta and carreta.classificacao == 'frota' %}selected{% endif %}>Frota</option>
+                                    <option value="terceiro" {% if carreta and carreta.classificacao == 'terceiro' %}selected{% endif %}>Terceiro</option>
+                                </select>
+                                <small class="form-text text-muted">
+                                    Define a qual categoria a carreta pertence. Isso determina quais cavalos podem acoplar esta carreta.
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
                                 <label for="ultima_lavagem" class="form-label">Última Lavagem</label>
                                 <input type="date" class="form-control" id="ultima_lavagem" name="ultima_lavagem" 
                                        value="{% if carreta and carreta.ultima_lavagem %}{{ carreta.ultima_lavagem|date:'Y-m-d' }}{% endif %}">

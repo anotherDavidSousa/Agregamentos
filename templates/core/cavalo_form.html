@@ -46,11 +46,11 @@
     
     <div class="form-group">
         <label for="classificacao">Classificação</label>
-        <select id="classificacao" name="classificacao">
+        <select id="classificacao" name="classificacao" onchange="filtrarCarretas()">
             <option value="">Selecione...</option>
             <option value="agregado" {% if cavalo and cavalo.classificacao == 'agregado' %}selected{% endif %}>Agregado</option>
-            <option value="frota" {% if cavalo and cavalo.classificacao == 'frota' %}selected{% endif %}>Frota Própria</option>
-            <option value="terceiro" {% if cavalo and cavalo.classificacao == 'terceiro' %}selected{% endif %}>Terceirizado</option>
+            <option value="frota" {% if cavalo and cavalo.classificacao == 'frota' %}selected{% endif %}>Frota</option>
+            <option value="terceiro" {% if cavalo and cavalo.classificacao == 'terceiro' %}selected{% endif %}>Terceiro</option>
         </select>
     </div>
     
@@ -96,15 +96,60 @@
             <option value="">Nenhuma</option>
             {% for carreta in carretas_disponiveis %}
             <option value="{{ carreta.pk }}" 
+                    data-classificacao="{{ carreta.classificacao|default:'' }}"
                     {% if cavalo and cavalo.carreta and cavalo.carreta.pk == carreta.pk %}selected{% endif %}>
-                {{ carreta.placa }} {% if not carreta.disponivel %}(Já acoplada){% endif %}
+                {{ carreta.placa }} 
+                {% if carreta.classificacao %}({{ carreta.get_classificacao_display }}){% endif %}
+                {% if not carreta.disponivel %}(Já acoplada){% endif %}
             </option>
             {% endfor %}
         </select>
         <p style="margin-top: 0.5rem; color: #7f8c8d; font-size: 0.875rem;">
-            Apenas carretas disponíveis são mostradas aqui.
+            Apenas carretas disponíveis e compatíveis com a classificação do cavalo são mostradas aqui.
         </p>
     </div>
+    
+    <script>
+        function filtrarCarretas() {
+            var classificacaoCavalo = document.getElementById('classificacao').value;
+            var selectCarreta = document.getElementById('carreta');
+            var options = selectCarreta.getElementsByTagName('option');
+            var selectedValue = selectCarreta.value;
+            var selectedOptionHidden = false;
+            
+            // Mostrar/ocultar opções baseado na classificação
+            for (var i = 0; i < options.length; i++) {
+                var option = options[i];
+                if (option.value === '') {
+                    // Sempre mostrar opção "Nenhuma"
+                    option.style.display = '';
+                } else {
+                    var classificacaoCarreta = option.getAttribute('data-classificacao');
+                    // Se não tem classificação do cavalo, mostrar todas (compatibilidade)
+                    // Se tem classificação, mostrar apenas as compatíveis
+                    if (!classificacaoCavalo || !classificacaoCarreta || classificacaoCarreta === classificacaoCavalo) {
+                        option.style.display = '';
+                    } else {
+                        option.style.display = 'none';
+                        // Verificar se a opção selecionada foi ocultada
+                        if (option.value === selectedValue) {
+                            selectedOptionHidden = true;
+                        }
+                    }
+                }
+            }
+            
+            // Se a opção selecionada foi ocultada, limpar seleção
+            if (selectedOptionHidden) {
+                selectCarreta.value = '';
+            }
+        }
+        
+        // Filtrar ao carregar a página se já houver classificação selecionada
+        document.addEventListener('DOMContentLoaded', function() {
+            filtrarCarretas();
+        });
+    </script>
     
     <div class="form-group">
         <label for="foto">Foto</label>

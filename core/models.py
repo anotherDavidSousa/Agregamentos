@@ -88,8 +88,8 @@ class Cavalo(models.Model):
 
     CLASSIFICACAO_CHOICES = [
         ('agregado', 'Agregado'),
-        ('frota', 'Frota Própria'),
-        ('terceiro', 'Terceirizado'),
+        ('frota', 'Frota'),
+        ('terceiro', 'Terceiro'),
     ]
 
     placa = models.CharField(max_length=10, blank=True, null=True, unique=True)
@@ -212,6 +212,7 @@ class Carreta(models.Model):
     lona_facil = models.CharField(max_length=10, choices=LONA_FACIL_CHOICES, blank=True, null=True)
     step = models.CharField(max_length=10, choices=STEP_CHOICES, blank=True, null=True)
     tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, blank=True, null=True)
+    classificacao = models.CharField(max_length=20, choices=CLASSIFICACAO_CHOICES, blank=True, null=True, verbose_name='Classificação')
     local = models.CharField(max_length=255, blank=True, null=True, verbose_name='Local', help_text='Atualizado automaticamente por API')
     foto = models.ImageField(upload_to='carretas/fotos/', blank=True, null=True, verbose_name='Foto')
     documento = models.FileField(upload_to='carretas/documentos/', blank=True, null=True, verbose_name='Documento')

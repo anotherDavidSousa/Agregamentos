@@ -600,6 +600,31 @@ def cavalo_create(request):
         # Processar foto
         if 'foto' in request.FILES:
             cavalo.foto = request.FILES['foto']
+        
+        # Gerenciar carreta (se selecionada)
+        carreta_id = request.POST.get('carreta') or None
+        if carreta_id:
+            try:
+                carreta = Carreta.objects.get(pk=carreta_id)
+                # Validar compatibilidade de classificação
+                if cavalo.classificacao and carreta.classificacao:
+                    if cavalo.classificacao != carreta.classificacao:
+                        messages.error(request, f'Erro: A carreta selecionada é de "{carreta.get_classificacao_display}" mas o cavalo é "{cavalo.get_classificacao_display}". Eles devem ter a mesma classificação.')
+                        proprietarios = Proprietario.objects.all()
+                        gestores = Gestor.objects.all()
+                        carretas_acopladas_ids = Cavalo.objects.exclude(carreta__isnull=True).values_list('carreta_id', flat=True)
+                        carretas_disponiveis = Carreta.objects.exclude(id__in=carretas_acopladas_ids)
+                        return render(request, 'core/cavalo_form.html', {
+                            'form_type': 'create',
+                            'proprietarios': proprietarios,
+                            'gestores': gestores,
+                            'carretas_disponiveis': carretas_disponiveis,
+                            'cavalo': None
+                        })
+                cavalo.carreta = carreta
+            except Carreta.DoesNotExist:
+                pass
+        
         cavalo.save()
         return redirect('cavalo_detail', pk=cavalo.pk)
     
@@ -612,7 +637,8 @@ def cavalo_create(request):
         'form_type': 'create',
         'proprietarios': proprietarios,
         'gestores': gestores,
-        'carretas_disponiveis': carretas_disponiveis
+        'carretas_disponiveis': carretas_disponiveis,
+        'cavalo': None  # Para o template saber que é criação
     })
 
 
@@ -638,18 +664,40 @@ def cavalo_edit(request, pk):
         # Gerenciar carreta
         carreta_id = request.POST.get('carreta') or None
         if carreta_id:
-            carreta = Carreta.objects.get(pk=carreta_id)
-            # Remove carreta do cavalo anterior se houver
-            # Verificar se existe relacionamento OneToOne reverso
             try:
-                cavalo_anterior = carreta.cavalo_acoplado
-                if cavalo_anterior and cavalo_anterior.pk != cavalo.pk:
-                    cavalo_anterior.carreta = None
-                    cavalo_anterior.save()
-            except Cavalo.DoesNotExist:
-                # Não há cavalo acoplado, pode prosseguir
-                pass
-            cavalo.carreta = carreta
+                carreta = Carreta.objects.get(pk=carreta_id)
+                # Validar compatibilidade de classificação
+                if cavalo.classificacao and carreta.classificacao:
+                    if cavalo.classificacao != carreta.classificacao:
+                        messages.error(request, f'Erro: A carreta selecionada é de "{carreta.get_classificacao_display}" mas o cavalo é "{cavalo.get_classificacao_display}". Eles devem ter a mesma classificação.')
+                        proprietarios = Proprietario.objects.all()
+                        gestores = Gestor.objects.all()
+                        carretas_acopladas_ids = Cavalo.objects.exclude(carreta__isnull=True).exclude(pk=pk).values_list('carreta_id', flat=True)
+                        if cavalo.classificacao:
+                            carretas_disponiveis = Carreta.objects.filter(classificacao=cavalo.classificacao).exclude(id__in=carretas_acopladas_ids)
+                        else:
+                            carretas_disponiveis = Carreta.objects.exclude(id__in=carretas_acopladas_ids)
+                        if cavalo.carreta:
+                            carretas_disponiveis = carretas_disponiveis | Carreta.objects.filter(pk=cavalo.carreta.pk)
+                        return render(request, 'core/cavalo_form.html', {
+                            'cavalo': cavalo,
+                            'form_type': 'edit',
+                            'proprietarios': proprietarios,
+                            'gestores': gestores,
+                            'carretas_disponiveis': carretas_disponiveis
+                        })
+                
+                # Remove carreta do cavalo anterior se houver
+                try:
+                    cavalo_anterior = carreta.cavalo_acoplado
+                    if cavalo_anterior and cavalo_anterior.pk != cavalo.pk:
+                        cavalo_anterior.carreta = None
+                        cavalo_anterior.save()
+                except Cavalo.DoesNotExist:
+                    pass
+                cavalo.carreta = carreta
+            except Carreta.DoesNotExist:
+                cavalo.carreta = None
         else:
             cavalo.carreta = None
         
@@ -757,6 +805,7 @@ def carreta_edit(request, pk):
         carreta.lona_facil = request.POST.get('lona_facil', '')
         carreta.step = request.POST.get('step', '')
         carreta.tipo = request.POST.get('tipo', '')
+        carreta.classificacao = request.POST.get('classificacao', '')
         carreta.observacoes = request.POST.get('observacoes', '')
         # Processar arquivos
         if 'foto' in request.FILES:
