@@ -502,7 +502,7 @@ def cavalo_list(request):
             # Veículo parado (sem motorista)
             cavalos = cavalos.filter(situacao='parado')
         else:
-            cavalos = cavalos.filter(situacao=situacao_filter)
+        cavalos = cavalos.filter(situacao=situacao_filter)
     
     if tipo_filter:
         cavalos = cavalos.filter(tipo=tipo_filter)
@@ -665,7 +665,7 @@ def cavalo_edit(request, pk):
         carreta_id = request.POST.get('carreta') or None
         if carreta_id:
             try:
-                carreta = Carreta.objects.get(pk=carreta_id)
+            carreta = Carreta.objects.get(pk=carreta_id)
                 # Validar compatibilidade de classificação
                 if cavalo.classificacao and carreta.classificacao:
                     if cavalo.classificacao != carreta.classificacao:
@@ -687,7 +687,7 @@ def cavalo_edit(request, pk):
                             'carretas_disponiveis': carretas_disponiveis
                         })
                 
-                # Remove carreta do cavalo anterior se houver
+            # Remove carreta do cavalo anterior se houver
                 try:
                     cavalo_anterior = carreta.cavalo_acoplado
                     if cavalo_anterior and cavalo_anterior.pk != cavalo.pk:
@@ -695,7 +695,7 @@ def cavalo_edit(request, pk):
                         cavalo_anterior.save()
                 except Cavalo.DoesNotExist:
                     pass
-                cavalo.carreta = carreta
+            cavalo.carreta = carreta
             except Carreta.DoesNotExist:
                 cavalo.carreta = None
         else:
@@ -773,7 +773,7 @@ def carreta_create(request):
             carreta.foto = request.FILES['foto']
         if 'documento' in request.FILES:
             carreta.documento = request.FILES['documento']
-        carreta.save()
+            carreta.save()
         return redirect('carreta_detail', pk=carreta.pk)
     return render(request, 'core/carreta_form.html', {'form_type': 'create'})
 

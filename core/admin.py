@@ -170,7 +170,7 @@ class CarretaAdmin(admin.ModelAdmin):
             'fields': ('polietileno', 'cones', 'localizador', 'lona_facil', 'step')
         }),
         ('Características', {
-            'fields': ('tipo',)
+            'fields': ('tipo', 'classificacao')
         }),
         ('Localização e Arquivos', {
             'fields': ('local', 'foto', 'documento')
