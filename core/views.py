@@ -502,7 +502,7 @@ def cavalo_list(request):
             # Veículo parado (sem motorista)
             cavalos = cavalos.filter(situacao='parado')
         else:
-        cavalos = cavalos.filter(situacao=situacao_filter)
+            cavalos = cavalos.filter(situacao=situacao_filter)
     
     if tipo_filter:
         cavalos = cavalos.filter(tipo=tipo_filter)
