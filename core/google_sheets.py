@@ -219,9 +219,10 @@ def _get_insert_position(worksheet, cavalo):
                 output_field=IntegerField()
             ),
             ordem_tipo=Case(
-                When(tipo='toco', then=Value(0)),
-                When(tipo='trucado', then=Value(1)),
-                default=Value(2),
+                When(tipo='bi_truck', then=Value(0)),
+                When(tipo='toco', then=Value(1)),
+                When(tipo='trucado', then=Value(2)),
+                default=Value(3),
                 output_field=IntegerField()
             ),
             motorista_nome_ordem=Case(
@@ -246,12 +247,13 @@ def _get_insert_position(worksheet, cavalo):
         # Calcular a posição do cavalo atual na ordem
         classificacao_ordem = 0 if (cavalo.classificacao == 'agregado' or not cavalo.classificacao) else (1 if cavalo.classificacao == 'frota' else 2)
         terceiro_ordem = 1 if cavalo.classificacao == 'terceiro' else 0
+        tipo_ordem = 0 if cavalo.tipo == 'bi_truck' else (1 if cavalo.tipo == 'toco' else (2 if cavalo.tipo == 'trucado' else 3))
         cavalo_ordem = (
             terceiro_ordem,
             classificacao_ordem,
             (0 if cavalo.situacao == 'ativo' else 1 if cavalo.situacao == 'parado' else 2),
             (0 if cavalo.fluxo == 'escoria' else 1 if cavalo.fluxo == 'minerio' else 2),
-            (0 if cavalo.tipo == 'toco' else 1 if cavalo.tipo == 'trucado' else 2),
+            tipo_ordem,
             (cavalo.motorista.nome if cavalo.motorista else '')
         )
         
@@ -262,12 +264,13 @@ def _get_insert_position(worksheet, cavalo):
                 break
             outro_classificacao_ordem = 0 if (outro_cavalo.classificacao == 'agregado' or not outro_cavalo.classificacao) else (1 if outro_cavalo.classificacao == 'frota' else 2)
             outro_terceiro_ordem = 1 if outro_cavalo.classificacao == 'terceiro' else 0
+            outro_tipo_ordem = 0 if outro_cavalo.tipo == 'bi_truck' else (1 if outro_cavalo.tipo == 'toco' else (2 if outro_cavalo.tipo == 'trucado' else 3))
             outro_ordem = (
                 outro_terceiro_ordem,
                 outro_classificacao_ordem,
                 (0 if outro_cavalo.situacao == 'ativo' else 1 if outro_cavalo.situacao == 'parado' else 2),
                 (0 if outro_cavalo.fluxo == 'escoria' else 1 if outro_cavalo.fluxo == 'minerio' else 2),
-                (0 if outro_cavalo.tipo == 'toco' else 1 if outro_cavalo.tipo == 'trucado' else 2),
+                outro_tipo_ordem,
                 (outro_cavalo.motorista.nome if outro_cavalo.motorista else '')
             )
             if outro_ordem < cavalo_ordem:
@@ -507,9 +510,10 @@ def sync_cavalos_to_sheets():
                 output_field=IntegerField()
             ),
             ordem_tipo=Case(
-                When(tipo='toco', then=Value(0)),
-                When(tipo='trucado', then=Value(1)),
-                default=Value(2),
+                When(tipo='bi_truck', then=Value(0)),
+                When(tipo='toco', then=Value(1)),
+                When(tipo='trucado', then=Value(2)),
+                default=Value(3),
                 output_field=IntegerField()
             ),
             motorista_nome_ordem=Case(

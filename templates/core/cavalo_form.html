@@ -39,6 +39,7 @@
         <label for="tipo">Tipo</label>
         <select id="tipo" name="tipo">
             <option value="">Selecione...</option>
+            <option value="bi_truck" {% if cavalo and cavalo.tipo == 'bi_truck' %}selected{% endif %}>Bi-truck</option>
             <option value="toco" {% if cavalo and cavalo.tipo == 'toco' %}selected{% endif %}>Toco</option>
             <option value="trucado" {% if cavalo and cavalo.tipo == 'trucado' %}selected{% endif %}>Trucado</option>
         </select>

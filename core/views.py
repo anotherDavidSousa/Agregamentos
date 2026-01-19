@@ -541,11 +541,12 @@ def cavalo_list(request):
             default=Value(2),
             output_field=IntegerField()
         ),
-        # Ordem de tipo: toco=0, trucado=1
+        # Ordem de tipo: bi-truck=0, toco=1, trucado=2
         ordem_tipo=Case(
-            When(tipo='toco', then=Value(0)),
-            When(tipo='trucado', then=Value(1)),
-            default=Value(2),
+            When(tipo='bi_truck', then=Value(0)),
+            When(tipo='toco', then=Value(1)),
+            When(tipo='trucado', then=Value(2)),
+            default=Value(3),
             output_field=IntegerField()
         ),
         # Nome do motorista para ordenação alfabética (usar string vazia se não tiver motorista)

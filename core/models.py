@@ -82,6 +82,7 @@ class Cavalo(models.Model):
     ]
 
     TIPO_CHOICES = [
+        ('bi_truck', 'Bi-truck'),
         ('toco', 'Toco'),
         ('trucado', 'Trucado'),
     ]

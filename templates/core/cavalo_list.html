@@ -336,7 +336,9 @@
                                     </td>
                                     <td>{{ cavalo.ano|default:"-" }}</td>
                                     <td>
-                                        {% if cavalo.tipo == 'toco' %}
+                                        {% if cavalo.tipo == 'bi_truck' %}
+                                            <span class="badge bg-secondary">Bi-truck</span>
+                                        {% elif cavalo.tipo == 'toco' %}
                                             <span class="badge badge-toco">Toco</span>
                                         {% elif cavalo.tipo == 'trucado' %}
                                             <span class="badge badge-trucado">Trucado</span>
