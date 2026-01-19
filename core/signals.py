@@ -227,9 +227,11 @@ def atualizar_status_parceiro_apos_deletar_cavalo(sender, instance, **kwargs):
 @receiver(pre_save, sender=Motorista)
 def log_mudanca_motorista(sender, instance, **kwargs):
     """Cria logs automáticos quando há mudanças no motorista relacionado ao cavalo"""
+    # Armazenar o cavalo antigo para uso no post_save
     if instance.pk:  # Só funciona para instâncias já salvas
         try:
             motorista_antigo = Motorista.objects.select_related('cavalo').get(pk=instance.pk)
+            instance._cavalo_antigo = motorista_antigo.cavalo
             cavalo_antigo = motorista_antigo.cavalo
             cavalo_novo = instance.cavalo
 
@@ -266,5 +268,36 @@ def log_mudanca_motorista(sender, instance, **kwargs):
 
         except Motorista.DoesNotExist:
             # Primeira vez que está sendo salvo, não há log
-            pass
+            instance._cavalo_antigo = None
+    else:
+        # Nova instância, não há cavalo antigo
+        instance._cavalo_antigo = None
+
+
+@receiver(post_save, sender=Motorista)
+def sincronizar_cavalo_apos_mudanca_motorista(sender, instance, created, **kwargs):
+    """
+    Sincroniza o cavalo relacionado no Google Sheets quando o motorista é associado/removido
+    Também sincroniza o cavalo antigo se o motorista foi transferido
+    """
+    try:
+        from .google_sheets import update_cavalo_async
+        
+        # Obter o cavalo antigo (armazenado no pre_save)
+        cavalo_antigo = getattr(instance, '_cavalo_antigo', None)
+        cavalo_novo = instance.cavalo
+        
+        # Se o motorista tem um cavalo novo associado, sincronizar esse cavalo
+        if cavalo_novo:
+            update_cavalo_async(cavalo_novo.pk)
+        
+        # Se havia um cavalo anterior diferente do atual, sincronizar o antigo também
+        if cavalo_antigo and cavalo_antigo != cavalo_novo:
+            update_cavalo_async(cavalo_antigo.pk)
+        
+    except Exception as e:
+        # Não quebrar o fluxo se houver erro na sincronização
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Erro ao sincronizar cavalo após mudança de motorista: {str(e)}")
 
