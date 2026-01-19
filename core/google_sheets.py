@@ -172,6 +172,11 @@ def _get_cavalo_row_data(cavalo):
     placa_carreta_mg = f"{placa_carreta}MG" if placa_carreta != '-' else '-'
     
     # Retornar dicionário mapeado por coluna
+    # Para tipo do proprietário, usar abreviação (PF ou PJ) ao invés do display completo
+    tipo_proprietario = '-'
+    if cavalo.proprietario and cavalo.proprietario.tipo:
+        tipo_proprietario = cavalo.proprietario.tipo  # Retorna 'PF' ou 'PJ' diretamente
+    
     return {
         'A': placa_cavalo,
         'B': placa_carreta,
@@ -183,7 +188,7 @@ def _get_cavalo_row_data(cavalo):
         'H': cavalo.get_fluxo_display() if cavalo.fluxo else '-',
         'I': cavalo.get_classificacao_display() if cavalo.classificacao else '-',
         'J': cavalo.proprietario.codigo if cavalo.proprietario and cavalo.proprietario.codigo else '-',
-        'K': cavalo.proprietario.get_tipo_display() if cavalo.proprietario and cavalo.proprietario.tipo else '-',
+        'K': tipo_proprietario,  # PF ou PJ
         'L': cavalo.proprietario.nome_razao_social if cavalo.proprietario else '-',
         'M': cavalo.get_situacao_display() if cavalo.situacao else '-',
     }
