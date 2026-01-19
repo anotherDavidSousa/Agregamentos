@@ -15,6 +15,7 @@ CONFIGURAÇÃO NECESSÁRIA (no settings.py):
 """
 
 import os
+import time
 import threading
 import logging
 from django.conf import settings
@@ -589,9 +590,28 @@ def sync_cavalos_to_sheets():
             pass
         
         # Adicionar novos dados
+        # Limite do Google Sheets: 60 requisições de escrita por minuto
+        # Usar append_rows em lotes para ser mais eficiente e respeitar o limite
         if data_rows:
-            for i, row_data in enumerate(data_rows, start=2):
-                worksheet.insert_row(row_data, i, value_input_option='RAW')
+            total_rows = len(data_rows)
+            logger.info(f'Inserindo {total_rows} linhas na planilha...')
+            
+            # Inserir em lotes de 50 linhas por vez (com delay entre lotes)
+            # Isso é mais eficiente que inserir linha por linha e respeita o limite de quota
+            batch_size = 50
+            for batch_start in range(0, total_rows, batch_size):
+                batch_end = min(batch_start + batch_size, total_rows)
+                batch_data = data_rows[batch_start:batch_end]
+                
+                # Inserir lote usando append_rows (adiciona no final)
+                worksheet.append_rows(batch_data, value_input_option='RAW')
+                
+                logger.info(f"Progresso: {batch_end}/{total_rows} linhas inseridas")
+                
+                # Delay de 1.1 segundos entre lotes (exceto no último lote)
+                # Isso garante que não excedemos 60 requisições por minuto
+                if batch_end < total_rows:
+                    time.sleep(1.1)
         
         logger.info(f"Sincronização completa: {len(data_rows)} cavalos atualizados")
         return True
