@@ -5,11 +5,29 @@
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
 <style>
-    .carreta-parado {
+    /* Cores de fundo para linhas baseadas na situação - aplicado em toda a linha e células */
+    #tabelaCarretas tbody tr.carreta-parado {
         background-color: #ffcccc !important;
     }
-    .carreta-parado:hover {
+    #tabelaCarretas tbody tr.carreta-parado td {
+        background-color: #ffcccc !important;
+    }
+    /* Garantir que as linhas mantenham a cor ao passar o mouse */
+    #tabelaCarretas tbody tr.carreta-parado:hover {
+        background-color: #ffaaaa !important; /* Tom mais escuro no hover */
+    }
+    #tabelaCarretas tbody tr.carreta-parado:hover td {
         background-color: #ffaaaa !important;
+    }
+    /* Sobrescrever estilos do Bootstrap table-hover */
+    table.table-hover tbody tr.carreta-parado:hover td,
+    table.table-hover tbody tr.carreta-parado:hover {
+        background-color: #ffaaaa !important;
+    }
+    /* Garantir que badges e links mantenham visibilidade */
+    #tabelaCarretas tbody tr.carreta-parado td a,
+    #tabelaCarretas tbody tr.carreta-parado td .badge {
+        /* Manter cores originais dos links e badges */
     }
 </style>
 {% endblock %}
@@ -20,6 +38,34 @@
         <div class="col-12">
             <h2><i class="bi bi-box"></i> Carretas</h2>
             <p class="text-muted">Lista de carretas cadastradas</p>
+        </div>
+    </div>
+    
+    <!-- Exibidores -->
+    <div class="row mb-4">
+        <div class="col-md-4 col-sm-6 mb-3">
+            <div class="card bg-primary text-white text-center">
+                <div class="card-body">
+                    <h5 class="card-title mb-0">Total de Carretas (Agregamento)</h5>
+                    <h3 class="mb-0">{{ contador_total_agregamento }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-sm-6 mb-3">
+            <div class="card bg-success text-white text-center">
+                <div class="card-body">
+                    <h5 class="card-title mb-0">Carretas Disponíveis (Agregamento)</h5>
+                    <h3 class="mb-0">{{ contador_disponiveis_agregamento }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-sm-6 mb-3">
+            <div class="card bg-danger text-white text-center">
+                <div class="card-body">
+                    <h5 class="card-title mb-0">Carretas Paradas (Agregamento)</h5>
+                    <h3 class="mb-0">{{ contador_paradas_agregamento }}</h3>
+                </div>
+            </div>
         </div>
     </div>
     
@@ -216,13 +262,41 @@
             columnDefs: [
                 { orderable: true, targets: '_all' },
                 { width: 'auto', targets: '_all' }
-            ]
+            ],
+            drawCallback: function(settings) {
+                // Forçar aplicação dos estilos CSS nas linhas com situação parado
+                // Isso garante que as cores sejam aplicadas mesmo após o DataTables renderizar
+                setTimeout(function() {
+                    $('#tabelaCarretas tbody tr.carreta-parado').each(function() {
+                        $(this).css('background-color', '#ffcccc');
+                        $(this).find('td').css('background-color', '#ffcccc');
+                    });
+                }, 10);
+            }
         });
         
         // Inicializar tooltips do Bootstrap
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+        
+        // Garantir cores de fundo após inicialização completa
+        setTimeout(function() {
+            $('#tabelaCarretas tbody tr.carreta-parado').each(function() {
+                $(this).css('background-color', '#ffcccc');
+                $(this).find('td').css('background-color', '#ffcccc');
+            });
+        }, 100);
+        
+        // Eventos de hover para manter cores
+        $(document).on('mouseenter', '#tabelaCarretas tbody tr.carreta-parado', function() {
+            $(this).css('background-color', '#ffaaaa');
+            $(this).find('td').css('background-color', '#ffaaaa');
+        });
+        $(document).on('mouseleave', '#tabelaCarretas tbody tr.carreta-parado', function() {
+            $(this).css('background-color', '#ffcccc');
+            $(this).find('td').css('background-color', '#ffcccc');
         });
     });
 </script>

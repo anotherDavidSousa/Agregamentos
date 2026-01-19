@@ -571,13 +571,15 @@ def cavalo_list(request):
         'motorista_nome_ordem'  # Alfabético por nome do motorista
     )
     
-    # Contadores (todos os cavalos, não apenas os filtrados)
-    todos_cavalos = Cavalo.objects.all()
-    contador_trucado = todos_cavalos.filter(tipo='trucado').count()
-    contador_toco = todos_cavalos.filter(tipo='toco').count()
-    contador_parado = todos_cavalos.filter(Q(situacao='parado') | Q(situacao='desagregado')).count()
-    contador_escoria = todos_cavalos.filter(fluxo='escoria').count()
-    contador_minerio = todos_cavalos.filter(fluxo='minerio').count()
+    # Contadores (apenas cavalos agregados, não apenas os filtrados)
+    todos_cavalos_agregados = Cavalo.objects.filter(
+        Q(classificacao='agregado') | Q(classificacao__isnull=True)
+    )
+    contador_trucado = todos_cavalos_agregados.filter(tipo='trucado').count()
+    contador_toco = todos_cavalos_agregados.filter(tipo='toco').count()
+    contador_parado = todos_cavalos_agregados.filter(Q(situacao='parado') | Q(situacao='desagregado')).count()
+    contador_escoria = todos_cavalos_agregados.filter(fluxo='escoria').count()
+    contador_minerio = todos_cavalos_agregados.filter(fluxo='minerio').count()
     
     return render(request, 'core/cavalo_list.html', {
         'cavalos': cavalos,
@@ -777,9 +779,21 @@ def carreta_list(request):
         ).exclude(id__in=carretas_acopladas_ids)
     elif disponivel_filter == 'nao':
         carretas = carretas.filter(id__in=carretas_acopladas_ids)
+    
+    # Contadores para carretas agregadas
+    carretas_agregadas = Carreta.objects.filter(
+        models.Q(classificacao='agregado') | models.Q(classificacao__isnull=True)
+    )
+    contador_total_agregamento = carretas_agregadas.count()
+    contador_disponiveis_agregamento = carretas_agregadas.exclude(id__in=carretas_acopladas_ids).count()
+    contador_paradas_agregamento = carretas_agregadas.filter(situacao='parado').count()
+    
     return render(request, 'core/carreta_list.html', {
         'carretas': carretas,
-        'disponivel_filter': disponivel_filter
+        'disponivel_filter': disponivel_filter,
+        'contador_total_agregamento': contador_total_agregamento,
+        'contador_disponiveis_agregamento': contador_disponiveis_agregamento,
+        'contador_paradas_agregamento': contador_paradas_agregamento
     })
 
 
