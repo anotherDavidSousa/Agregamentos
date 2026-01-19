@@ -67,23 +67,23 @@ def _get_worksheet():
         # Tentar abrir aba, criar se não existir
         try:
             worksheet = spreadsheet.worksheet(worksheet_name)
-            # Verificar e expandir se necessário (precisa ter pelo menos 12 colunas: A-L)
+            # Verificar e expandir se necessário (precisa ter pelo menos 13 colunas: A-M)
             try:
                 current_cols = worksheet.col_count
-                if current_cols < 12:
-                    logger.info(f"Expandindo planilha existente de {current_cols} para 12 colunas...")
-                    worksheet.resize(rows=worksheet.row_count, cols=12)
+                if current_cols < 13:
+                    logger.info(f"Expandindo planilha existente de {current_cols} para 13 colunas...")
+                    worksheet.resize(rows=worksheet.row_count, cols=13)
             except Exception as e:
                 logger.warning(f"Erro ao expandir planilha existente: {str(e)}")
         except gspread.exceptions.WorksheetNotFound:
             logger.info(f"Aba '{worksheet_name}' não encontrada. Criando...")
-            worksheet = spreadsheet.add_worksheet(title=worksheet_name, rows=1000, cols=12)
+            worksheet = spreadsheet.add_worksheet(title=worksheet_name, rows=1000, cols=13)
             # Criar cabeçalhos na primeira vez
             headers = [
                 'PLACA', 'CARRETA', 'PLACA MG', 'CARRETA MG', 'MOTORISTA', 'CPF', 'TIPO', 'FLUXO',
-                'CLASSIFICAÇÃO', 'CÓDIGO DO PROPRIETÁRIO', 'PROPRIETÁRIO', 'SITUAÇÃO'
+                'CLASSIFICAÇÃO', 'CÓDIGO DO PROPRIETÁRIO', 'TIPO DO PROPRIETÁRIO', 'PROPRIETÁRIO', 'SITUAÇÃO'
             ]
-            worksheet.update('A1:L1', [headers], value_input_option='RAW')
+            worksheet.update('A1:M1', [headers], value_input_option='RAW')
         
         return worksheet
         
@@ -128,8 +128,9 @@ def _get_column_mapping():
     - Coluna H: FLUXO
     - Coluna I: CLASSIFICAÇÃO
     - Coluna J: CÓDIGO DO PROPRIETÁRIO
-    - Coluna K: PROPRIETÁRIO
-    - Coluna L: SITUAÇÃO
+    - Coluna K: TIPO DO PROPRIETÁRIO
+    - Coluna L: PROPRIETÁRIO
+    - Coluna M: SITUAÇÃO
     
     Retorna um dicionário com os dados do cavalo mapeados para as colunas corretas
     """
@@ -144,8 +145,9 @@ def _get_column_mapping():
         'H': 'fluxo',          # FLUXO
         'I': 'classificacao',  # CLASSIFICAÇÃO
         'J': 'codigo_proprietario',  # CÓDIGO DO PROPRIETÁRIO
-        'K': 'proprietario',   # PROPRIETÁRIO
-        'L': 'situacao',       # SITUAÇÃO
+        'K': 'tipo_proprietario',   # TIPO DO PROPRIETÁRIO
+        'L': 'proprietario',   # PROPRIETÁRIO
+        'M': 'situacao',       # SITUAÇÃO
     }
 
 
@@ -181,8 +183,9 @@ def _get_cavalo_row_data(cavalo):
         'H': cavalo.get_fluxo_display() if cavalo.fluxo else '-',
         'I': cavalo.get_classificacao_display() if cavalo.classificacao else '-',
         'J': cavalo.proprietario.codigo if cavalo.proprietario and cavalo.proprietario.codigo else '-',
-        'K': cavalo.proprietario.nome_razao_social if cavalo.proprietario else '-',
-        'L': cavalo.get_situacao_display() if cavalo.situacao else '-',
+        'K': cavalo.proprietario.get_tipo_display() if cavalo.proprietario and cavalo.proprietario.tipo else '-',
+        'L': cavalo.proprietario.nome_razao_social if cavalo.proprietario else '-',
+        'M': cavalo.get_situacao_display() if cavalo.situacao else '-',
     }
 
 
@@ -323,15 +326,15 @@ def update_cavalo_in_sheets(cavalo_pk):
         row_num = _find_row_by_placa(worksheet, cavalo.placa)
         
         if row_num:
-            # Atualizar linha existente - todas as colunas (A-L)
+            # Atualizar linha existente - todas as colunas (A-M)
             row_data_dict = _get_cavalo_row_data(cavalo)
             
-            # Verificar e expandir planilha se necessário (precisa ter pelo menos 12 colunas: A-L)
+            # Verificar e expandir planilha se necessário (precisa ter pelo menos 13 colunas: A-M)
             try:
                 current_cols = worksheet.col_count
-                if current_cols < 12:
-                    logger.info(f"Expandindo planilha de {current_cols} para 12 colunas...")
-                    worksheet.resize(rows=worksheet.row_count, cols=12)
+                if current_cols < 13:
+                    logger.info(f"Expandindo planilha de {current_cols} para 13 colunas...")
+                    worksheet.resize(rows=worksheet.row_count, cols=13)
             except Exception as e:
                 logger.warning(f"Erro ao expandir planilha: {str(e)}")
             
@@ -394,12 +397,12 @@ def add_cavalo_to_sheets(cavalo_pk):
         # Calcular posição de inserção
         row_num = _get_insert_position(worksheet, cavalo)
         
-        # Verificar e expandir planilha se necessário (precisa ter pelo menos 12 colunas: A-L)
+        # Verificar e expandir planilha se necessário (precisa ter pelo menos 13 colunas: A-M)
         try:
             current_cols = worksheet.col_count
-            if current_cols < 12:
-                logger.info(f"Expandindo planilha de {current_cols} para 12 colunas...")
-                worksheet.resize(rows=worksheet.row_count, cols=12)
+            if current_cols < 13:
+                logger.info(f"Expandindo planilha de {current_cols} para 13 colunas...")
+                worksheet.resize(rows=worksheet.row_count, cols=13)
         except Exception as e:
             logger.warning(f"Erro ao expandir planilha: {str(e)}")
         
@@ -407,7 +410,7 @@ def add_cavalo_to_sheets(cavalo_pk):
         row_data_dict = _get_cavalo_row_data(cavalo)
         
         # Criar lista completa de valores (incluindo C e D com placas + MG)
-        # Ordem: A, B, C (placa + MG), D (carreta + MG), E, F, G, H, I, J, K, L
+        # Ordem: A, B, C (placa + MG), D (carreta + MG), E, F, G, H, I, J, K, L, M
         row_data_list = [
             row_data_dict.get('A', ''),
             row_data_dict.get('B', ''),
@@ -418,9 +421,10 @@ def add_cavalo_to_sheets(cavalo_pk):
             row_data_dict.get('G', ''),
             row_data_dict.get('H', ''),
             row_data_dict.get('I', ''),
-            row_data_dict.get('J', ''),
-            row_data_dict.get('K', ''),
-            row_data_dict.get('L', ''),
+            row_data_dict.get('J', ''),  # Coluna J - Código do Proprietário
+            row_data_dict.get('K', ''),  # Coluna K - Tipo do Proprietário
+            row_data_dict.get('L', ''),  # Coluna L - Proprietário
+            row_data_dict.get('M', ''),  # Coluna M - Situação
         ]
         
         # Inserir linha na posição correta
@@ -475,12 +479,12 @@ def sync_cavalos_to_sheets():
         if not worksheet:
             return False
         
-        # Verificar e expandir planilha se necessário (precisa ter pelo menos 12 colunas: A-L)
+        # Verificar e expandir planilha se necessário (precisa ter pelo menos 13 colunas: A-M)
         try:
             current_cols = worksheet.col_count
-            if current_cols < 12:
-                logger.info(f"Expandindo planilha de {current_cols} para 12 colunas...")
-                worksheet.resize(rows=worksheet.row_count, cols=12)
+            if current_cols < 13:
+                logger.info(f"Expandindo planilha de {current_cols} para 13 colunas...")
+                worksheet.resize(rows=worksheet.row_count, cols=13)
         except Exception as e:
             logger.warning(f"Erro ao expandir planilha: {str(e)}")
         
@@ -538,13 +542,13 @@ def sync_cavalos_to_sheets():
         # Preparar cabeçalhos
         headers = [
             'PLACA', 'CARRETA', 'PLACA MG', 'CARRETA MG', 'MOTORISTA', 'CPF', 'TIPO', 'FLUXO',
-            'CLASSIFICAÇÃO', 'CÓDIGO DO PROPRIETÁRIO', 'PROPRIETÁRIO', 'SITUAÇÃO'
+            'CLASSIFICAÇÃO', 'CÓDIGO DO PROPRIETÁRIO', 'TIPO DO PROPRIETÁRIO', 'PROPRIETÁRIO', 'SITUAÇÃO'
         ]
         
         # Verificar cabeçalhos
         try:
             first_row = worksheet.row_values(1)
-            if not first_row or len(first_row) < 12:
+            if not first_row or len(first_row) < 13:
                 # Atualizar todos os cabeçalhos incluindo C e D
                 header_updates = []
                 header_updates.append({'range': 'A1', 'values': [['PLACA']]})
@@ -557,8 +561,9 @@ def sync_cavalos_to_sheets():
                 header_updates.append({'range': 'H1', 'values': [['FLUXO']]})
                 header_updates.append({'range': 'I1', 'values': [['CLASSIFICAÇÃO']]})
                 header_updates.append({'range': 'J1', 'values': [['CÓDIGO DO PROPRIETÁRIO']]})
-                header_updates.append({'range': 'K1', 'values': [['PROPRIETÁRIO']]})
-                header_updates.append({'range': 'L1', 'values': [['SITUAÇÃO']]})
+                header_updates.append({'range': 'K1', 'values': [['TIPO DO PROPRIETÁRIO']]})
+                header_updates.append({'range': 'L1', 'values': [['PROPRIETÁRIO']]})
+                header_updates.append({'range': 'M1', 'values': [['SITUAÇÃO']]})
                 worksheet.batch_update(header_updates, value_input_option='RAW')
         except Exception:
             pass
@@ -578,9 +583,10 @@ def sync_cavalos_to_sheets():
                 row_data_dict.get('G', ''),
                 row_data_dict.get('H', ''),
                 row_data_dict.get('I', ''),
-                row_data_dict.get('J', ''),
-                row_data_dict.get('K', ''),
-                row_data_dict.get('L', ''),
+                row_data_dict.get('J', ''),  # Coluna J - Código do Proprietário
+                row_data_dict.get('K', ''),  # Coluna K - Tipo do Proprietário
+                row_data_dict.get('L', ''),  # Coluna L - Proprietário
+                row_data_dict.get('M', ''),  # Coluna M - Situação
             ]
             data_rows.append(row_data_list)
         
