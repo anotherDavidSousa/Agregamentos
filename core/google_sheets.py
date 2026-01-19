@@ -77,9 +77,9 @@ def _get_worksheet():
         except gspread.exceptions.WorksheetNotFound:
             logger.info(f"Aba '{worksheet_name}' não encontrada. Criando...")
             worksheet = spreadsheet.add_worksheet(title=worksheet_name, rows=1000, cols=12)
-            # Criar cabeçalhos na primeira vez (com colunas extras vazias C e D)
+            # Criar cabeçalhos na primeira vez
             headers = [
-                'PLACA', 'CARRETA', '', '', 'MOTORISTA', 'CPF', 'TIPO', 'FLUXO',
+                'PLACA', 'CARRETA', 'PLACA MG', 'CARRETA MG', 'MOTORISTA', 'CPF', 'TIPO', 'FLUXO',
                 'CLASSIFICAÇÃO', 'CÓDIGO DO PROPRIETÁRIO', 'PROPRIETÁRIO', 'SITUAÇÃO'
             ]
             worksheet.update('A1:L1', [headers], value_input_option='RAW')
@@ -119,37 +119,39 @@ def _get_column_mapping():
     Estrutura da planilha:
     - Coluna A: PLACA (cavalo)
     - Coluna B: CARRETA
-    - Coluna C: [Coluna extra do usuário - NÃO TOCAR]
-    - Coluna D: [Coluna extra do usuário - NÃO TOCAR]
+    - Coluna C: PLACA + MG (cavalo)
+    - Coluna D: CARRETA + MG
     - Coluna E: MOTORISTA
     - Coluna F: CPF
     - Coluna G: TIPO
     - Coluna H: FLUXO
-    - Coluna I: CÓDIGO DO PROPRIETÁRIO
-    - Coluna J: PROPRIETÁRIO
-    - Coluna K: SITUAÇÃO
+    - Coluna I: CLASSIFICAÇÃO
+    - Coluna J: CÓDIGO DO PROPRIETÁRIO
+    - Coluna K: PROPRIETÁRIO
+    - Coluna L: SITUAÇÃO
     
     Retorna um dicionário com os dados do cavalo mapeados para as colunas corretas
     """
     return {
         'A': 'placa',           # PLACA (cavalo)
         'B': 'carreta',        # CARRETA
-        # 'C': None,            # Coluna extra do usuário - NÃO TOCAR
-        # 'D': None,            # Coluna extra do usuário - NÃO TOCAR
+        'C': 'placa_mg',       # PLACA + MG (cavalo)
+        'D': 'carreta_mg',     # CARRETA + MG
         'E': 'motorista',      # MOTORISTA
         'F': 'cpf',            # CPF
         'G': 'tipo',           # TIPO
         'H': 'fluxo',          # FLUXO
-        'I': 'codigo_proprietario',  # CÓDIGO DO PROPRIETÁRIO
-        'J': 'proprietario',   # PROPRIETÁRIO
-        'K': 'situacao',       # SITUAÇÃO
+        'I': 'classificacao',  # CLASSIFICAÇÃO
+        'J': 'codigo_proprietario',  # CÓDIGO DO PROPRIETÁRIO
+        'K': 'proprietario',   # PROPRIETÁRIO
+        'L': 'situacao',       # SITUAÇÃO
     }
 
 
 def _get_cavalo_row_data(cavalo):
     """
     Prepara os dados de uma linha do cavalo no formato da planilha
-    Retorna um dicionário com os valores mapeados por coluna (A, B, E, F, etc.)
+    Retorna um dicionário com os valores mapeados por coluna (A, B, C, D, E, F, etc.)
     """
     # Tratar motorista de forma segura (OneToOne reverso pode lançar exceção)
     try:
@@ -159,11 +161,19 @@ def _get_cavalo_row_data(cavalo):
         motorista_nome = '-'
         motorista_cpf = '-'
     
+    # Preparar placas com MG
+    placa_cavalo = cavalo.placa or '-'
+    placa_cavalo_mg = f"{placa_cavalo}MG" if placa_cavalo != '-' else '-'
+    
+    placa_carreta = cavalo.carreta.placa if cavalo.carreta else '-'
+    placa_carreta_mg = f"{placa_carreta}MG" if placa_carreta != '-' else '-'
+    
     # Retornar dicionário mapeado por coluna
     return {
-        'A': cavalo.placa or '-',
-        'B': cavalo.carreta.placa if cavalo.carreta else '-',
-        # C e D são colunas extras do usuário - não preencher
+        'A': placa_cavalo,
+        'B': placa_carreta,
+        'C': placa_cavalo_mg,
+        'D': placa_carreta_mg,
         'E': motorista_nome,
         'F': motorista_cpf,
         'G': cavalo.get_tipo_display() if cavalo.tipo else '-',
@@ -184,10 +194,17 @@ def _get_insert_position(worksheet, cavalo):
     try:
         from .models import Cavalo
         
-        # Buscar todos os cavalos na ordem correta
+        # Buscar todos os cavalos na ordem correta (mesma ordenação do template/admin)
         todos_cavalos = Cavalo.objects.select_related('motorista', 'carreta', 'proprietario', 'gestor').exclude(
             Q(carreta__isnull=True) | Q(situacao='desagregado')
         ).annotate(
+            ordem_classificacao=Case(
+                When(classificacao='agregado', then=Value(0)),
+                When(classificacao='frota', then=Value(1)),
+                When(classificacao='terceiro', then=Value(2)),
+                default=Value(0),
+                output_field=IntegerField()
+            ),
             ordem_situacao=Case(
                 When(situacao='ativo', then=Value(0)),
                 When(situacao='parado', then=Value(1)),
@@ -210,8 +227,15 @@ def _get_insert_position(worksheet, cavalo):
                 When(motorista__isnull=False, then=F('motorista__nome')),
                 default=Value(''),
                 output_field=CharField()
+            ),
+            ordem_terceiro=Case(
+                When(classificacao='terceiro', then=Value(1)),
+                default=Value(0),
+                output_field=IntegerField()
             )
         ).order_by(
+            'ordem_terceiro',
+            'ordem_classificacao',
             'ordem_situacao',
             'ordem_fluxo',
             'ordem_tipo',
@@ -219,7 +243,11 @@ def _get_insert_position(worksheet, cavalo):
         )
         
         # Calcular a posição do cavalo atual na ordem
+        classificacao_ordem = 0 if (cavalo.classificacao == 'agregado' or not cavalo.classificacao) else (1 if cavalo.classificacao == 'frota' else 2)
+        terceiro_ordem = 1 if cavalo.classificacao == 'terceiro' else 0
         cavalo_ordem = (
+            terceiro_ordem,
+            classificacao_ordem,
             (0 if cavalo.situacao == 'ativo' else 1 if cavalo.situacao == 'parado' else 2),
             (0 if cavalo.fluxo == 'escoria' else 1 if cavalo.fluxo == 'minerio' else 2),
             (0 if cavalo.tipo == 'toco' else 1 if cavalo.tipo == 'trucado' else 2),
@@ -231,7 +259,11 @@ def _get_insert_position(worksheet, cavalo):
         for outro_cavalo in todos_cavalos:
             if outro_cavalo.pk == cavalo.pk:
                 break
+            outro_classificacao_ordem = 0 if (outro_cavalo.classificacao == 'agregado' or not outro_cavalo.classificacao) else (1 if outro_cavalo.classificacao == 'frota' else 2)
+            outro_terceiro_ordem = 1 if outro_cavalo.classificacao == 'terceiro' else 0
             outro_ordem = (
+                outro_terceiro_ordem,
+                outro_classificacao_ordem,
                 (0 if outro_cavalo.situacao == 'ativo' else 1 if outro_cavalo.situacao == 'parado' else 2),
                 (0 if outro_cavalo.fluxo == 'escoria' else 1 if outro_cavalo.fluxo == 'minerio' else 2),
                 (0 if outro_cavalo.tipo == 'toco' else 1 if outro_cavalo.tipo == 'trucado' else 2),
@@ -287,7 +319,7 @@ def update_cavalo_in_sheets(cavalo_pk):
         row_num = _find_row_by_placa(worksheet, cavalo.placa)
         
         if row_num:
-            # Atualizar linha existente - apenas as colunas do banco de dados
+            # Atualizar linha existente - todas as colunas (A-L)
             row_data_dict = _get_cavalo_row_data(cavalo)
             
             # Verificar e expandir planilha se necessário (precisa ter pelo menos 12 colunas: A-L)
@@ -299,7 +331,7 @@ def update_cavalo_in_sheets(cavalo_pk):
             except Exception as e:
                 logger.warning(f"Erro ao expandir planilha: {str(e)}")
             
-            # Atualizar cada coluna individualmente (pulando C e D que são extras do usuário)
+            # Atualizar cada coluna individualmente (incluindo C e D com placas + MG)
             updates = []
             for col, value in row_data_dict.items():
                 updates.append({
@@ -367,16 +399,16 @@ def add_cavalo_to_sheets(cavalo_pk):
         except Exception as e:
             logger.warning(f"Erro ao expandir planilha: {str(e)}")
         
-        # Preparar dados - criar lista completa com colunas vazias para C e D
+        # Preparar dados - criar lista completa com todas as colunas
         row_data_dict = _get_cavalo_row_data(cavalo)
         
-        # Criar lista completa de valores (incluindo colunas vazias C e D)
-        # Ordem: A, B, C (vazio), D (vazio), E, F, G, H, I, J, K, L
+        # Criar lista completa de valores (incluindo C e D com placas + MG)
+        # Ordem: A, B, C (placa + MG), D (carreta + MG), E, F, G, H, I, J, K, L
         row_data_list = [
             row_data_dict.get('A', ''),
             row_data_dict.get('B', ''),
-            '',  # Coluna C - extra do usuário (vazia)
-            '',  # Coluna D - extra do usuário (vazia)
+            row_data_dict.get('C', ''),  # Coluna C - Placa Cavalo + MG
+            row_data_dict.get('D', ''),  # Coluna D - Placa Carreta + MG
             row_data_dict.get('E', ''),
             row_data_dict.get('F', ''),
             row_data_dict.get('G', ''),
@@ -450,10 +482,17 @@ def sync_cavalos_to_sheets():
         
         from .models import Cavalo
         
-        # Buscar todos os cavalos na mesma ordem do admin
+        # Buscar todos os cavalos na mesma ordem do admin/template
         cavalos = Cavalo.objects.select_related('motorista', 'carreta', 'proprietario', 'gestor').exclude(
             Q(carreta__isnull=True) | Q(situacao='desagregado')
         ).annotate(
+            ordem_classificacao=Case(
+                When(classificacao='agregado', then=Value(0)),
+                When(classificacao='frota', then=Value(1)),
+                When(classificacao='terceiro', then=Value(2)),
+                default=Value(0),
+                output_field=IntegerField()
+            ),
             ordem_situacao=Case(
                 When(situacao='ativo', then=Value(0)),
                 When(situacao='parado', then=Value(1)),
@@ -476,29 +515,37 @@ def sync_cavalos_to_sheets():
                 When(motorista__isnull=False, then=F('motorista__nome')),
                 default=Value(''),
                 output_field=CharField()
+            ),
+            ordem_terceiro=Case(
+                When(classificacao='terceiro', then=Value(1)),
+                default=Value(0),
+                output_field=IntegerField()
             )
         ).order_by(
+            'ordem_terceiro',
+            'ordem_classificacao',
             'ordem_situacao',
             'ordem_fluxo',
             'ordem_tipo',
             'motorista_nome_ordem'
         )
         
-        # Preparar cabeçalhos (incluindo colunas extras vazias)
+        # Preparar cabeçalhos
         headers = [
-            'PLACA', 'CARRETA', '', '', 'MOTORISTA', 'CPF', 'TIPO', 'FLUXO',
+            'PLACA', 'CARRETA', 'PLACA MG', 'CARRETA MG', 'MOTORISTA', 'CPF', 'TIPO', 'FLUXO',
             'CLASSIFICAÇÃO', 'CÓDIGO DO PROPRIETÁRIO', 'PROPRIETÁRIO', 'SITUAÇÃO'
         ]
         
         # Verificar cabeçalhos
         try:
             first_row = worksheet.row_values(1)
-            if not first_row or len(first_row) < 11:
-                # Atualizar apenas as colunas do banco de dados, preservando C e D se existirem
+            if not first_row or len(first_row) < 12:
+                # Atualizar todos os cabeçalhos incluindo C e D
                 header_updates = []
                 header_updates.append({'range': 'A1', 'values': [['PLACA']]})
                 header_updates.append({'range': 'B1', 'values': [['CARRETA']]})
-                # C e D não são atualizados (preservados)
+                header_updates.append({'range': 'C1', 'values': [['PLACA MG']]})
+                header_updates.append({'range': 'D1', 'values': [['CARRETA MG']]})
                 header_updates.append({'range': 'E1', 'values': [['MOTORISTA']]})
                 header_updates.append({'range': 'F1', 'values': [['CPF']]})
                 header_updates.append({'range': 'G1', 'values': [['TIPO']]})
@@ -515,12 +562,12 @@ def sync_cavalos_to_sheets():
         data_rows = []
         for cavalo in cavalos:
             row_data_dict = _get_cavalo_row_data(cavalo)
-            # Criar lista completa com colunas vazias para C e D
+            # Criar lista completa com todas as colunas (incluindo C e D com placas + MG)
             row_data_list = [
                 row_data_dict.get('A', ''),
                 row_data_dict.get('B', ''),
-                '',  # Coluna C - extra do usuário
-                '',  # Coluna D - extra do usuário
+                row_data_dict.get('C', ''),  # Coluna C - Placa Cavalo + MG
+                row_data_dict.get('D', ''),  # Coluna D - Placa Carreta + MG
                 row_data_dict.get('E', ''),
                 row_data_dict.get('F', ''),
                 row_data_dict.get('G', ''),

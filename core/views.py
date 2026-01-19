@@ -511,12 +511,22 @@ def cavalo_list(request):
         cavalos = cavalos.filter(fluxo=fluxo_filter)
     
     # Ordenação personalizada:
-    # 1. Situação: ativo primeiro, depois parado
-    # 2. Fluxo: escória primeiro, depois minério
-    # 3. Tipo: toco primeiro, depois trucado
-    # 4. Nome do motorista: alfabético
+    # 1. Classificação: Agregado=0, Frota=1, Terceiro=2
+    # 2. Situação: ativo primeiro, depois parado (mas Terceiros sempre por último)
+    # 3. Fluxo: escória primeiro, depois minério
+    # 4. Tipo: toco primeiro, depois trucado
+    # 5. Nome do motorista: alfabético
+    # Estrutura: Agregados Ativos → Frota Ativos → Parados (exceto Terceiros) → Terceiros (todos)
     cavalos = cavalos.annotate(
-        # Ordem de situação: ativo=0, parado=1
+        # Ordem de classificação: agregado=0, frota=1, terceiro=2
+        ordem_classificacao=Case(
+            When(classificacao='agregado', then=Value(0)),
+            When(classificacao='frota', then=Value(1)),
+            When(classificacao='terceiro', then=Value(2)),
+            default=Value(0),  # Sem classificação = agregado (compatibilidade)
+            output_field=IntegerField()
+        ),
+        # Ordem de situação: ativo=0, parado=1 (mas Terceiros sempre por último)
         ordem_situacao=Case(
             When(situacao='ativo', then=Value(0)),
             When(situacao='parado', then=Value(1)),
@@ -542,11 +552,20 @@ def cavalo_list(request):
             When(motorista__isnull=False, then=F('motorista__nome')),
             default=Value(''),
             output_field=CharField()
+        ),
+        # Ordem especial: Terceiros sempre por último, independente de situação
+        # 0 = não terceiro, 1 = terceiro
+        ordem_terceiro=Case(
+            When(classificacao='terceiro', then=Value(1)),
+            default=Value(0),
+            output_field=IntegerField()
         )
     ).order_by(
-        'ordem_situacao',  # Ativos primeiro
-        'ordem_fluxo',      # Escória primeiro
-        'ordem_tipo',       # Tocos primeiro
+        'ordem_terceiro',      # Terceiros sempre por último (0 primeiro, 1 depois)
+        'ordem_classificacao', # Agregado, depois Frota, depois Terceiro
+        'ordem_situacao',      # Ativos primeiro (dentro de cada classificação)
+        'ordem_fluxo',         # Escória primeiro
+        'ordem_tipo',          # Tocos primeiro
         'motorista_nome_ordem'  # Alfabético por nome do motorista
     )
     
