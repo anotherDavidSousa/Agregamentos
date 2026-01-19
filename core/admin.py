@@ -171,12 +171,35 @@ class CavaloAdmin(admin.ModelAdmin):
         """Exibe o código do proprietário"""
         return obj.proprietario.codigo if obj.proprietario and obj.proprietario.codigo else '-'
     codigo_proprietario.short_description = 'Código do Proprietário'
+    
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        """Filtra carretas disponíveis no admin: apenas Agregado (ou sem classificação)"""
+        if db_field.name == 'carreta':
+            # Obter carretas acopladas
+            from django.db.models import Q
+            carretas_acopladas_ids = Cavalo.objects.exclude(carreta__isnull=True).values_list('carreta_id', flat=True)
+            
+            # Filtrar apenas carretas Agregado (ou sem classificação) que não estão acopladas
+            kwargs['queryset'] = Carreta.objects.filter(
+                Q(classificacao='agregado') | Q(classificacao__isnull=True)
+            ).exclude(id__in=carretas_acopladas_ids)
+            
+            # Se estiver editando um cavalo existente, incluir a carreta atual (se houver)
+            if hasattr(request.resolver_match, 'kwargs') and 'object_id' in request.resolver_match.kwargs:
+                try:
+                    cavalo = Cavalo.objects.get(pk=request.resolver_match.kwargs['object_id'])
+                    if cavalo.carreta:
+                        kwargs['queryset'] = kwargs['queryset'] | Carreta.objects.filter(pk=cavalo.carreta.pk)
+                except Cavalo.DoesNotExist:
+                    pass
+        
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
 @admin.register(Carreta)
 class CarretaAdmin(admin.ModelAdmin):
-    list_display = ['placa', 'marca', 'modelo', 'ano', 'tipo', 'local', 'cavalo_acoplado']
-    list_filter = ['tipo', 'polietileno', 'localizador']
+    list_display = ['placa', 'marca', 'modelo', 'ano', 'tipo', 'situacao', 'local', 'cavalo_acoplado']
+    list_filter = ['tipo', 'polietileno', 'localizador', 'situacao', 'classificacao']
     search_fields = ['placa', 'marca', 'modelo', 'local']
     fieldsets = (
         ('Dados Básicos', {
@@ -189,7 +212,7 @@ class CarretaAdmin(admin.ModelAdmin):
             'fields': ('polietileno', 'cones', 'localizador', 'lona_facil', 'step')
         }),
         ('Características', {
-            'fields': ('tipo', 'classificacao')
+            'fields': ('tipo', 'classificacao', 'situacao')
         }),
         ('Localização e Arquivos', {
             'fields': ('local', 'foto', 'documento')

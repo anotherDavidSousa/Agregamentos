@@ -80,6 +80,16 @@
                             </div>
                             
                             <div class="col-md-6 mb-3">
+                                <label for="situacao" class="form-label">Situação</label>
+                                <select class="form-select" id="situacao" name="situacao">
+                                    <option value="ativo" {% if not carreta or carreta.situacao == 'ativo' %}selected{% endif %}>Ativo</option>
+                                    <option value="parado" {% if carreta and carreta.situacao == 'parado' %}selected{% endif %}>Parado</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
                                 <label for="ultima_lavagem" class="form-label">Última Lavagem</label>
                                 <input type="date" class="form-control" id="ultima_lavagem" name="ultima_lavagem" 
                                        value="{% if carreta and carreta.ultima_lavagem %}{{ carreta.ultima_lavagem|date:'Y-m-d' }}{% endif %}">

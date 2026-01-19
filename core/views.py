@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.db import models
 from django.db.models import Q, Count, Case, When, Value, IntegerField, F, CharField
 from django.core.paginator import Paginator
 from django.utils import timezone
@@ -633,10 +634,14 @@ def cavalo_create(request):
                         gestores = Gestor.objects.all()
                         carretas_acopladas_ids = Cavalo.objects.exclude(carreta__isnull=True).values_list('carreta_id', flat=True)
                         # Filtrar carretas pela classificação do cavalo
+                        # Apenas carretas Agregado (ou sem classificação) são consideradas disponíveis
                         if cavalo.classificacao:
                             carretas_disponiveis = Carreta.objects.filter(classificacao=cavalo.classificacao).exclude(id__in=carretas_acopladas_ids)
                         else:
-                            carretas_disponiveis = Carreta.objects.exclude(id__in=carretas_acopladas_ids)
+                            # Se o cavalo não tem classificação, mostrar apenas carretas Agregado
+                            carretas_disponiveis = Carreta.objects.filter(
+                                models.Q(classificacao='agregado') | models.Q(classificacao__isnull=True)
+                            ).exclude(id__in=carretas_acopladas_ids)
                         return render(request, 'core/cavalo_form.html', {
                             'form_type': 'create',
                             'proprietarios': proprietarios,
@@ -654,8 +659,11 @@ def cavalo_create(request):
     proprietarios = Proprietario.objects.all()
     gestores = Gestor.objects.all()
     # Carretas que não estão acopladas a nenhum cavalo
+    # Apenas carretas Agregado (ou sem classificação) são consideradas disponíveis
     carretas_acopladas_ids = Cavalo.objects.exclude(carreta__isnull=True).values_list('carreta_id', flat=True)
-    carretas_disponiveis = Carreta.objects.exclude(id__in=carretas_acopladas_ids)
+    carretas_disponiveis = Carreta.objects.filter(
+        models.Q(classificacao='agregado') | models.Q(classificacao__isnull=True)
+    ).exclude(id__in=carretas_acopladas_ids)
     return render(request, 'core/cavalo_form.html', {
         'form_type': 'create',
         'proprietarios': proprietarios,
@@ -699,7 +707,10 @@ def cavalo_edit(request, pk):
                         if cavalo.classificacao:
                             carretas_disponiveis = Carreta.objects.filter(classificacao=cavalo.classificacao).exclude(id__in=carretas_acopladas_ids)
                         else:
-                            carretas_disponiveis = Carreta.objects.exclude(id__in=carretas_acopladas_ids)
+                            # Se o cavalo não tem classificação, mostrar apenas carretas Agregado
+                            carretas_disponiveis = Carreta.objects.filter(
+                                models.Q(classificacao='agregado') | models.Q(classificacao__isnull=True)
+                            ).exclude(id__in=carretas_acopladas_ids)
                         if cavalo.carreta:
                             carretas_disponiveis = carretas_disponiveis | Carreta.objects.filter(pk=cavalo.carreta.pk)
                         return render(request, 'core/cavalo_form.html', {
@@ -732,13 +743,17 @@ def cavalo_edit(request, pk):
     # Carretas disponíveis + a carreta atual do cavalo (se houver)
     carretas_acopladas_ids = Cavalo.objects.exclude(carreta__isnull=True).exclude(pk=cavalo.pk).values_list('carreta_id', flat=True)
     # Filtrar carretas pela classificação do cavalo (se houver)
+    # Apenas carretas Agregado (ou sem classificação) são consideradas disponíveis
     if cavalo.classificacao:
         carretas_disponiveis = Carreta.objects.filter(classificacao=cavalo.classificacao).exclude(id__in=carretas_acopladas_ids)
         # Incluir a carreta atual se houver (mesmo que não esteja na classificação correta, para não perder a referência)
         if cavalo.carreta:
             carretas_disponiveis = carretas_disponiveis | Carreta.objects.filter(pk=cavalo.carreta.pk)
     else:
-        carretas_disponiveis = Carreta.objects.exclude(id__in=carretas_acopladas_ids)
+        # Se o cavalo não tem classificação, mostrar apenas carretas Agregado
+        carretas_disponiveis = Carreta.objects.filter(
+            models.Q(classificacao='agregado') | models.Q(classificacao__isnull=True)
+        ).exclude(id__in=carretas_acopladas_ids)
     return render(request, 'core/cavalo_form.html', {
         'cavalo': cavalo,
         'form_type': 'edit',
@@ -755,7 +770,10 @@ def carreta_list(request):
     disponivel_filter = request.GET.get('disponivel', '')
     carretas_acopladas_ids = Cavalo.objects.exclude(carreta__isnull=True).values_list('carreta_id', flat=True)
     if disponivel_filter == 'sim':
-        carretas = carretas.exclude(id__in=carretas_acopladas_ids)
+        # Apenas carretas Agregado (ou sem classificação) que não estão acopladas
+        carretas = carretas.filter(
+            models.Q(classificacao='agregado') | models.Q(classificacao__isnull=True)
+        ).exclude(id__in=carretas_acopladas_ids)
     elif disponivel_filter == 'nao':
         carretas = carretas.filter(id__in=carretas_acopladas_ids)
     return render(request, 'core/carreta_list.html', {
@@ -796,6 +814,8 @@ def carreta_create(request):
             lona_facil=request.POST.get('lona_facil', ''),
             step=request.POST.get('step', ''),
             tipo=request.POST.get('tipo', ''),
+            classificacao=request.POST.get('classificacao', ''),
+            situacao=request.POST.get('situacao', 'ativo'),
             observacoes=request.POST.get('observacoes', ''),
         )
         # Processar arquivos
@@ -836,6 +856,7 @@ def carreta_edit(request, pk):
         carreta.step = request.POST.get('step', '')
         carreta.tipo = request.POST.get('tipo', '')
         carreta.classificacao = request.POST.get('classificacao', '')
+        carreta.situacao = request.POST.get('situacao', 'ativo')
         carreta.observacoes = request.POST.get('observacoes', '')
         # Processar arquivos
         if 'foto' in request.FILES:

@@ -205,6 +205,11 @@ class Carreta(models.Model):
         ('terceiro', 'Terceiro'),
     ]
 
+    SITUACAO_CHOICES = [
+        ('ativo', 'Ativo'),
+        ('parado', 'Parado'),
+    ]
+
     placa = models.CharField(max_length=10, blank=True, null=True, unique=True)
     marca = models.CharField(max_length=100, blank=True, null=True)
     modelo = models.CharField(max_length=100, blank=True, null=True)
@@ -219,6 +224,7 @@ class Carreta(models.Model):
     step = models.CharField(max_length=10, choices=STEP_CHOICES, blank=True, null=True)
     tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, blank=True, null=True)
     classificacao = models.CharField(max_length=20, choices=CLASSIFICACAO_CHOICES, blank=True, null=True, verbose_name='Classificação')
+    situacao = models.CharField(max_length=20, choices=SITUACAO_CHOICES, blank=True, null=True, verbose_name='Situação', default='ativo')
     local = models.CharField(max_length=255, blank=True, null=True, verbose_name='Local', help_text='Atualizado automaticamente por API')
     foto = models.ImageField(upload_to='carretas/fotos/', blank=True, null=True, verbose_name='Foto')
     documento = models.FileField(upload_to='carretas/documentos/', blank=True, null=True, verbose_name='Documento')
@@ -271,7 +277,13 @@ class Carreta(models.Model):
     
     @property
     def disponivel(self):
-        """Verifica se a carreta está disponível (não acoplada)"""
+        """
+        Verifica se a carreta está disponível (não acoplada E classificada como Agregado)
+        Carretas Frota ou Terceiro nunca são consideradas disponíveis
+        """
+        # Carretas Frota ou Terceiro nunca são disponíveis
+        if self.classificacao and self.classificacao in ['frota', 'terceiro']:
+            return False
         # Verifica se existe algum cavalo com esta carreta
         return not Cavalo.objects.filter(carreta=self).exists()
 
