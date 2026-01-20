@@ -209,8 +209,12 @@ def _get_insert_position(worksheet, cavalo):
         from .models import Cavalo
         
         # Buscar todos os cavalos na ordem correta (mesma ordenação do template/admin)
+        # Bi-trucks devem ser incluídos mesmo sem carreta
+        # Outros tipos precisam ter carreta
         todos_cavalos = Cavalo.objects.select_related('motorista', 'carreta', 'proprietario', 'gestor').exclude(
-            Q(carreta__isnull=True) | Q(situacao='desagregado')
+            Q(situacao='desagregado')
+        ).filter(
+            Q(tipo='bi_truck') | Q(carreta__isnull=False)
         ).annotate(
             ordem_classificacao=Case(
                 When(classificacao='agregado', then=Value(0)),
@@ -318,8 +322,18 @@ def update_cavalo_in_sheets(cavalo_pk):
             logger.warning(f"Cavalo com ID {cavalo_pk} não encontrado")
             return False
         
-        # Verificar se deve ser exibido (tem carreta e não está desagregado)
-        if not cavalo.carreta or cavalo.situacao == 'desagregado':
+        # Verificar se deve ser exibido
+        # Bi-truck não tem carreta, mas deve ser exibido
+        # Outros tipos precisam ter carreta
+        deve_exibir = False
+        if cavalo.tipo == 'bi_truck':
+            # Bi-truck sempre deve ser exibido (mesmo sem carreta)
+            deve_exibir = cavalo.situacao != 'desagregado'
+        else:
+            # Outros tipos precisam ter carreta
+            deve_exibir = cavalo.carreta is not None and cavalo.situacao != 'desagregado'
+        
+        if not deve_exibir:
             # Se não deve ser exibido, deletar da planilha se existir
             return delete_cavalo_from_sheets(cavalo.placa)
         
@@ -387,7 +401,17 @@ def add_cavalo_to_sheets(cavalo_pk):
             return False
         
         # Verificar se deve ser exibido
-        if not cavalo.carreta or cavalo.situacao == 'desagregado':
+        # Bi-truck não tem carreta, mas deve ser exibido
+        # Outros tipos precisam ter carreta
+        deve_exibir = False
+        if cavalo.tipo == 'bi_truck':
+            # Bi-truck sempre deve ser exibido (mesmo sem carreta)
+            deve_exibir = cavalo.situacao != 'desagregado'
+        else:
+            # Outros tipos precisam ter carreta
+            deve_exibir = cavalo.carreta is not None and cavalo.situacao != 'desagregado'
+        
+        if not deve_exibir:
             logger.info(f"Cavalo {cavalo.placa} não será adicionado (sem carreta ou desagregado)")
             return False
         
@@ -501,8 +525,12 @@ def sync_cavalos_to_sheets():
         from .models import Cavalo
         
         # Buscar todos os cavalos na mesma ordem do admin/template
+        # Bi-trucks devem ser incluídos mesmo sem carreta
+        # Outros tipos precisam ter carreta
         cavalos = Cavalo.objects.select_related('motorista', 'carreta', 'proprietario', 'gestor').exclude(
-            Q(carreta__isnull=True) | Q(situacao='desagregado')
+            Q(situacao='desagregado')
+        ).filter(
+            Q(tipo='bi_truck') | Q(carreta__isnull=False)
         ).annotate(
             ordem_classificacao=Case(
                 When(classificacao='agregado', then=Value(0)),
