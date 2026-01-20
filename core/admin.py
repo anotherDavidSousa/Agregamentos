@@ -86,6 +86,16 @@ class CavaloAdmin(admin.ModelAdmin):
     )
     readonly_fields = ['criado_em', 'atualizado_em']
     
+    class Media:
+        js = ('admin/js/cavalo_admin.js',)
+    
+    def get_form(self, request, obj=None, **kwargs):
+        """Customiza o formulário para adicionar validação"""
+        form = super().get_form(request, obj, **kwargs)
+        
+        # Adicionar validação customizada se necessário
+        return form
+    
     def get_queryset(self, request):
         """Aplica a mesma ordenação personalizada do template"""
         qs = super().get_queryset(request)
@@ -154,7 +164,9 @@ class CavaloAdmin(admin.ModelAdmin):
         return qs
     
     def carreta_display(self, obj):
-        """Exibe a placa da carreta"""
+        """Exibe a placa da carreta ou S/Placa para Bi-truck"""
+        if obj.tipo == 'bi_truck':
+            return 'S/Placa'
         return obj.carreta.placa if obj.carreta else '-'
     carreta_display.short_description = 'Carreta'
     
@@ -174,27 +186,47 @@ class CavaloAdmin(admin.ModelAdmin):
     codigo_proprietario.short_description = 'Código do Proprietário'
     
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        """Filtra carretas disponíveis no admin: apenas Agregado (ou sem classificação)"""
+        """Filtra carretas disponíveis no admin baseado na classificação do cavalo"""
         if db_field.name == 'carreta':
-            # Obter carretas acopladas
             from django.db.models import Q
             carretas_acopladas_ids = Cavalo.objects.exclude(carreta__isnull=True).values_list('carreta_id', flat=True)
             
-            # Filtrar apenas carretas Agregado (ou sem classificação) que não estão acopladas
-            kwargs['queryset'] = Carreta.objects.filter(
-                Q(classificacao='agregado') | Q(classificacao__isnull=True)
-            ).exclude(id__in=carretas_acopladas_ids)
-            
-            # Se estiver editando um cavalo existente, incluir a carreta atual (se houver)
+            # Tentar obter o cavalo sendo editado para filtrar pela classificação
+            cavalo_atual = None
             if hasattr(request.resolver_match, 'kwargs') and 'object_id' in request.resolver_match.kwargs:
                 try:
-                    cavalo = Cavalo.objects.get(pk=request.resolver_match.kwargs['object_id'])
-                    if cavalo.carreta:
-                        kwargs['queryset'] = kwargs['queryset'] | Carreta.objects.filter(pk=cavalo.carreta.pk)
+                    cavalo_atual = Cavalo.objects.get(pk=request.resolver_match.kwargs['object_id'])
                 except Cavalo.DoesNotExist:
                     pass
+            
+            # Se for Bi-truck, não mostrar nenhuma carreta (será desabilitado via JS)
+            if cavalo_atual and cavalo_atual.tipo == 'bi_truck':
+                kwargs['queryset'] = Carreta.objects.none()
+            # Se tem cavalo atual e tem classificação, filtrar carretas pela mesma classificação
+            elif cavalo_atual and cavalo_atual.classificacao:
+                kwargs['queryset'] = Carreta.objects.filter(
+                    classificacao=cavalo_atual.classificacao
+                ).exclude(id__in=carretas_acopladas_ids)
+                
+                # Incluir a carreta atual se houver
+                if cavalo_atual.carreta:
+                    kwargs['queryset'] = kwargs['queryset'] | Carreta.objects.filter(pk=cavalo_atual.carreta.pk)
+            else:
+                # Se não tem classificação, mostrar apenas carretas Agregado (ou sem classificação)
+                kwargs['queryset'] = Carreta.objects.filter(
+                    Q(classificacao='agregado') | Q(classificacao__isnull=True)
+                ).exclude(id__in=carretas_acopladas_ids)
         
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
+    
+    def save_model(self, request, obj, form, change):
+        """Garante que Bi-truck não tenha carreta e limpa carreta se tipo mudou para bi_truck"""
+        # Se for Bi-truck, garantir que não tenha carreta
+        if obj.tipo == 'bi_truck':
+            # Se tinha carreta antes, remover
+            if obj.carreta:
+                obj.carreta = None
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(Carreta)
