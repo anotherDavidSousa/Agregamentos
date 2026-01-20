@@ -168,8 +168,13 @@ def _get_cavalo_row_data(cavalo):
     placa_cavalo = cavalo.placa or '-'
     placa_cavalo_mg = f"{placa_cavalo}MG" if placa_cavalo != '-' else '-'
     
-    placa_carreta = cavalo.carreta.placa if cavalo.carreta else '-'
-    placa_carreta_mg = f"{placa_carreta}MG" if placa_carreta != '-' else '-'
+    # Bi-truck não tem carreta, é um conjunto apenas com o caminhão
+    if cavalo.tipo == 'bi_truck':
+        placa_carreta = 'S/Placa'
+        placa_carreta_mg = 'S/Placa'
+    else:
+        placa_carreta = cavalo.carreta.placa if cavalo.carreta else '-'
+        placa_carreta_mg = f"{placa_carreta}MG" if placa_carreta != '-' else '-'
     
     # Retornar dicionário mapeado por coluna
     # Para tipo do proprietário, usar abreviação (PF ou PJ) ao invés do display completo
