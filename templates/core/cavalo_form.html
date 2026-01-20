@@ -95,6 +95,10 @@
         <label for="carreta">Carreta Agregada</label>
         <select id="carreta" name="carreta">
             <option value="">Nenhuma</option>
+            <option value="s_placa" id="opcao_s_placa" 
+                    {% if cavalo and cavalo.tipo == 'bi_truck' and not cavalo.carreta %}selected{% endif %}>
+                S/Placa
+            </option>
             {% for carreta in carretas_disponiveis %}
             <option value="{{ carreta.pk }}" 
                     data-classificacao="{{ carreta.classificacao|default:'' }}"
@@ -112,52 +116,87 @@
     
     <script>
         function filtrarCarretas() {
+            var tipoCavalo = document.getElementById('tipo').value;
             var classificacaoCavalo = document.getElementById('classificacao').value;
             var selectCarreta = document.getElementById('carreta');
             var options = selectCarreta.getElementsByTagName('option');
             var selectedValue = selectCarreta.value;
             var selectedOptionHidden = false;
             var hasVisibleOptions = false;
+            var opcaoSPlaca = document.getElementById('opcao_s_placa');
             
-            // Mapeamento de classificação: cavalo -> carreta
-            // Agregado -> Agregamento
-            // Frota -> Frota
-            // Terceiro -> Terceiro
-            var classificacaoMap = {
-                'agregado': 'agregado',  // Cavalo Agregado usa carreta Agregamento (mesmo valor)
-                'frota': 'frota',
-                'terceiro': 'terceiro'
-            };
-            
-            // Determinar qual classificação de carreta é compatível
-            var classificacaoCarretaEsperada = classificacaoMap[classificacaoCavalo] || null;
-            
-            // Mostrar/ocultar opções baseado na classificação
-            for (var i = 0; i < options.length; i++) {
-                var option = options[i];
-                if (option.value === '') {
-                    // Sempre mostrar opção "Nenhuma"
-                    option.style.display = '';
-                    hasVisibleOptions = true;
-                } else {
-                    var classificacaoCarreta = option.getAttribute('data-classificacao');
-                    
-                    // Se não tem classificação do cavalo selecionada, ocultar todas as carretas
-                    // (força o usuário a selecionar a classificação primeiro)
-                    if (!classificacaoCavalo) {
+            // Se for Bi-truck, mostrar apenas "S/Placa" e "Nenhuma", ocultar todas as carretas
+            if (tipoCavalo === 'bi_truck') {
+                // Se não tem "S/Placa" selecionado, selecionar automaticamente
+                if (selectedValue !== 's_placa' && selectedValue !== '') {
+                    selectCarreta.value = 's_placa';
+                }
+                
+                for (var i = 0; i < options.length; i++) {
+                    var option = options[i];
+                    if (option.value === '' || option.value === 's_placa') {
+                        // Mostrar "Nenhuma" e "S/Placa"
+                        option.style.display = '';
+                        hasVisibleOptions = true;
+                    } else {
+                        // Ocultar todas as carretas reais
                         option.style.display = 'none';
                         if (option.value === selectedValue) {
                             selectedOptionHidden = true;
                         }
-                    } else {
-                        // Se tem classificação, mostrar apenas carretas compatíveis
-                        if (classificacaoCarreta === classificacaoCarretaEsperada) {
+                    }
+                }
+            } else {
+                // Se não for Bi-truck, ocultar "S/Placa" e mostrar carretas normalmente
+                if (opcaoSPlaca) {
+                    opcaoSPlaca.style.display = 'none';
+                    // Se "S/Placa" estava selecionado, limpar seleção
+                    if (selectedValue === 's_placa') {
+                        selectCarreta.value = '';
+                        selectedValue = '';
+                    }
+                }
+                
+                // Mapeamento de classificação: cavalo -> carreta
+                var classificacaoMap = {
+                    'agregado': 'agregado',
+                    'frota': 'frota',
+                    'terceiro': 'terceiro'
+                };
+                
+                // Determinar qual classificação de carreta é compatível
+                var classificacaoCarretaEsperada = classificacaoMap[classificacaoCavalo] || null;
+                
+                // Mostrar/ocultar opções baseado na classificação
+                for (var i = 0; i < options.length; i++) {
+                    var option = options[i];
+                    if (option.value === '' || option.value === 's_placa') {
+                        // Sempre mostrar opção "Nenhuma", ocultar "S/Placa" se não for bi-truck
+                        if (option.value === '') {
                             option.style.display = '';
                             hasVisibleOptions = true;
                         } else {
                             option.style.display = 'none';
+                        }
+                    } else {
+                        var classificacaoCarreta = option.getAttribute('data-classificacao');
+                        
+                        // Se não tem classificação do cavalo selecionada, ocultar todas as carretas
+                        if (!classificacaoCavalo) {
+                            option.style.display = 'none';
                             if (option.value === selectedValue) {
                                 selectedOptionHidden = true;
+                            }
+                        } else {
+                            // Se tem classificação, mostrar apenas carretas compatíveis
+                            if (classificacaoCarreta === classificacaoCarretaEsperada) {
+                                option.style.display = '';
+                                hasVisibleOptions = true;
+                            } else {
+                                option.style.display = 'none';
+                                if (option.value === selectedValue) {
+                                    selectedOptionHidden = true;
+                                }
                             }
                         }
                     }
@@ -169,9 +208,8 @@
                 selectCarreta.value = '';
             }
             
-            // Se não há opções visíveis (além de "Nenhuma"), mostrar mensagem
-            if (classificacaoCavalo && !hasVisibleOptions) {
-                // Adicionar mensagem informativa se não houver carretas disponíveis
+            // Se não há opções visíveis (além de "Nenhuma" ou "S/Placa"), mostrar mensagem
+            if (classificacaoCavalo && !hasVisibleOptions && tipoCavalo !== 'bi_truck') {
                 var helpText = selectCarreta.parentElement.querySelector('.form-text');
                 if (!helpText || !helpText.textContent.includes('Nenhuma carreta')) {
                     var newHelpText = document.createElement('small');
@@ -180,7 +218,6 @@
                     selectCarreta.parentElement.appendChild(newHelpText);
                 }
             } else {
-                // Remover mensagem de aviso se houver
                 var warningText = selectCarreta.parentElement.querySelector('.text-warning');
                 if (warningText) {
                     warningText.remove();
@@ -188,8 +225,12 @@
             }
         }
         
-        // Filtrar ao carregar a página se já houver classificação selecionada
+        // Adicionar listener para mudança de tipo
         document.addEventListener('DOMContentLoaded', function() {
+            var tipoSelect = document.getElementById('tipo');
+            if (tipoSelect) {
+                tipoSelect.addEventListener('change', filtrarCarretas);
+            }
             filtrarCarretas();
         });
     </script>

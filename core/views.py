@@ -625,36 +625,43 @@ def cavalo_create(request):
             cavalo.foto = request.FILES['foto']
         
         # Gerenciar carreta (se selecionada)
-        carreta_id = request.POST.get('carreta') or None
-        if carreta_id:
-            try:
-                carreta = Carreta.objects.get(pk=carreta_id)
-                # Validar compatibilidade de classificação
-                if cavalo.classificacao and carreta.classificacao:
-                    if cavalo.classificacao != carreta.classificacao:
-                        messages.error(request, f'Erro: A carreta selecionada é de "{carreta.get_classificacao_display()}" mas o cavalo é "{cavalo.get_classificacao_display()}". Eles devem ter a mesma classificação.')
-                        proprietarios = Proprietario.objects.all()
-                        gestores = Gestor.objects.all()
-                        carretas_acopladas_ids = Cavalo.objects.exclude(carreta__isnull=True).values_list('carreta_id', flat=True)
-                        # Filtrar carretas pela classificação do cavalo
-                        # Apenas carretas Agregado (ou sem classificação) são consideradas disponíveis
-                        if cavalo.classificacao:
-                            carretas_disponiveis = Carreta.objects.filter(classificacao=cavalo.classificacao).exclude(id__in=carretas_acopladas_ids)
-                        else:
-                            # Se o cavalo não tem classificação, mostrar apenas carretas Agregado
-                            carretas_disponiveis = Carreta.objects.filter(
-                                models.Q(classificacao='agregado') | models.Q(classificacao__isnull=True)
-                            ).exclude(id__in=carretas_acopladas_ids)
-                        return render(request, 'core/cavalo_form.html', {
-                            'form_type': 'create',
-                            'proprietarios': proprietarios,
-                            'gestores': gestores,
-                            'carretas_disponiveis': carretas_disponiveis,
-                            'cavalo': None
-                        })
-                cavalo.carreta = carreta
-            except Carreta.DoesNotExist:
-                pass
+        # Bi-truck não tem carreta, é um conjunto apenas com o caminhão
+        if cavalo.tipo == 'bi_truck':
+            cavalo.carreta = None
+        else:
+            carreta_id = request.POST.get('carreta') or None
+            # Se for "s_placa", não atribuir carreta (já tratado acima para bi-truck)
+            if carreta_id and carreta_id != 's_placa':
+                try:
+                    carreta = Carreta.objects.get(pk=carreta_id)
+                    # Validar compatibilidade de classificação
+                    if cavalo.classificacao and carreta.classificacao:
+                        if cavalo.classificacao != carreta.classificacao:
+                            messages.error(request, f'Erro: A carreta selecionada é de "{carreta.get_classificacao_display()}" mas o cavalo é "{cavalo.get_classificacao_display()}". Eles devem ter a mesma classificação.')
+                            proprietarios = Proprietario.objects.all()
+                            gestores = Gestor.objects.all()
+                            carretas_acopladas_ids = Cavalo.objects.exclude(carreta__isnull=True).values_list('carreta_id', flat=True)
+                            # Filtrar carretas pela classificação do cavalo
+                            # Apenas carretas Agregado (ou sem classificação) são consideradas disponíveis
+                            if cavalo.classificacao:
+                                carretas_disponiveis = Carreta.objects.filter(classificacao=cavalo.classificacao).exclude(id__in=carretas_acopladas_ids)
+                            else:
+                                # Se o cavalo não tem classificação, mostrar apenas carretas Agregado
+                                carretas_disponiveis = Carreta.objects.filter(
+                                    models.Q(classificacao='agregado') | models.Q(classificacao__isnull=True)
+                                ).exclude(id__in=carretas_acopladas_ids)
+                            return render(request, 'core/cavalo_form.html', {
+                                'form_type': 'create',
+                                'proprietarios': proprietarios,
+                                'gestores': gestores,
+                                'carretas_disponiveis': carretas_disponiveis,
+                                'cavalo': None
+                            })
+                    cavalo.carreta = carreta
+                except Carreta.DoesNotExist:
+                    cavalo.carreta = None
+            else:
+                cavalo.carreta = None
         
         cavalo.save()
         return redirect('cavalo_detail', pk=cavalo.pk)
@@ -696,47 +703,70 @@ def cavalo_edit(request, pk):
             cavalo.foto = request.FILES['foto']
         
         # Gerenciar carreta
-        carreta_id = request.POST.get('carreta') or None
-        if carreta_id:
-            try:
-                carreta = Carreta.objects.get(pk=carreta_id)
-                # Validar compatibilidade de classificação
-                if cavalo.classificacao and carreta.classificacao:
-                    if cavalo.classificacao != carreta.classificacao:
-                        messages.error(request, f'Erro: A carreta selecionada é de "{carreta.get_classificacao_display()}" mas o cavalo é "{cavalo.get_classificacao_display()}". Eles devem ter a mesma classificação.')
-                        proprietarios = Proprietario.objects.all()
-                        gestores = Gestor.objects.all()
-                        carretas_acopladas_ids = Cavalo.objects.exclude(carreta__isnull=True).exclude(pk=pk).values_list('carreta_id', flat=True)
-                        if cavalo.classificacao:
-                            carretas_disponiveis = Carreta.objects.filter(classificacao=cavalo.classificacao).exclude(id__in=carretas_acopladas_ids)
-                        else:
-                            # Se o cavalo não tem classificação, mostrar apenas carretas Agregado
-                            carretas_disponiveis = Carreta.objects.filter(
-                                models.Q(classificacao='agregado') | models.Q(classificacao__isnull=True)
-                            ).exclude(id__in=carretas_acopladas_ids)
-                        if cavalo.carreta:
-                            carretas_disponiveis = carretas_disponiveis | Carreta.objects.filter(pk=cavalo.carreta.pk)
-                        return render(request, 'core/cavalo_form.html', {
-                            'cavalo': cavalo,
-                            'form_type': 'edit',
-                            'proprietarios': proprietarios,
-                            'gestores': gestores,
-                            'carretas_disponiveis': carretas_disponiveis
-                        })
-                
-            # Remove carreta do cavalo anterior se houver
+        # Bi-truck não tem carreta, é um conjunto apenas com o caminhão
+        if cavalo.tipo == 'bi_truck':
+            # Se tinha carreta antes, remover
+            if cavalo.carreta:
                 try:
-                    cavalo_anterior = carreta.cavalo_acoplado
+                    cavalo_anterior = cavalo.carreta.cavalo_acoplado
                     if cavalo_anterior and cavalo_anterior.pk != cavalo.pk:
                         cavalo_anterior.carreta = None
                         cavalo_anterior.save()
                 except Cavalo.DoesNotExist:
                     pass
-                cavalo.carreta = carreta
-            except Carreta.DoesNotExist:
-                cavalo.carreta = None
-        else:
             cavalo.carreta = None
+        else:
+            carreta_id = request.POST.get('carreta') or None
+            # Se for "s_placa", não atribuir carreta
+            if carreta_id and carreta_id != 's_placa':
+                try:
+                    carreta = Carreta.objects.get(pk=carreta_id)
+                    # Validar compatibilidade de classificação
+                    if cavalo.classificacao and carreta.classificacao:
+                        if cavalo.classificacao != carreta.classificacao:
+                            messages.error(request, f'Erro: A carreta selecionada é de "{carreta.get_classificacao_display()}" mas o cavalo é "{cavalo.get_classificacao_display()}". Eles devem ter a mesma classificação.')
+                            proprietarios = Proprietario.objects.all()
+                            gestores = Gestor.objects.all()
+                            carretas_acopladas_ids = Cavalo.objects.exclude(carreta__isnull=True).exclude(pk=pk).values_list('carreta_id', flat=True)
+                            if cavalo.classificacao:
+                                carretas_disponiveis = Carreta.objects.filter(classificacao=cavalo.classificacao).exclude(id__in=carretas_acopladas_ids)
+                            else:
+                                # Se o cavalo não tem classificação, mostrar apenas carretas Agregado
+                                carretas_disponiveis = Carreta.objects.filter(
+                                    models.Q(classificacao='agregado') | models.Q(classificacao__isnull=True)
+                                ).exclude(id__in=carretas_acopladas_ids)
+                            if cavalo.carreta:
+                                carretas_disponiveis = carretas_disponiveis | Carreta.objects.filter(pk=cavalo.carreta.pk)
+                            return render(request, 'core/cavalo_form.html', {
+                                'cavalo': cavalo,
+                                'form_type': 'edit',
+                                'proprietarios': proprietarios,
+                                'gestores': gestores,
+                                'carretas_disponiveis': carretas_disponiveis
+                            })
+                    
+                    # Remove carreta do cavalo anterior se houver
+                    try:
+                        cavalo_anterior = carreta.cavalo_acoplado
+                        if cavalo_anterior and cavalo_anterior.pk != cavalo.pk:
+                            cavalo_anterior.carreta = None
+                            cavalo_anterior.save()
+                    except Cavalo.DoesNotExist:
+                        pass
+                    cavalo.carreta = carreta
+                except Carreta.DoesNotExist:
+                    cavalo.carreta = None
+            else:
+                # Se não selecionou carreta ou selecionou "s_placa", remover carreta atual se houver
+                if cavalo.carreta:
+                    try:
+                        cavalo_anterior = cavalo.carreta.cavalo_acoplado
+                        if cavalo_anterior and cavalo_anterior.pk != cavalo.pk:
+                            cavalo_anterior.carreta = None
+                            cavalo_anterior.save()
+                    except Cavalo.DoesNotExist:
+                        pass
+                cavalo.carreta = None
         
         cavalo.save()
         return redirect('cavalo_detail', pk=cavalo.pk)
