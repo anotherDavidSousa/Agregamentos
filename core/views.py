@@ -19,6 +19,7 @@ import time
 from .models import Proprietario, Gestor, Cavalo, Carreta, Motorista, LogCarreta, UploadLog, HistoricoGestor, DocumentoTransporte
 from .forms import UploadArquivoForm
 from .processadores import ProcessadorArquivos
+from django.http import JsonResponse
 
 
 def custom_login(request):
@@ -1176,6 +1177,14 @@ def historico_upload_view(request):
     return render(request, 'core/historico_upload.html', {
         'upload_logs': upload_logs
     })
+
+
+@login_required
+def ajax_carretas_classificacoes(request):
+    """Endpoint AJAX para obter classificações das carretas"""
+    carretas = Carreta.objects.all().values('id', 'classificacao')
+    classificacoes = {str(c['id']): c['classificacao'] or '' for c in carretas}
+    return JsonResponse(classificacoes)
 
 
 

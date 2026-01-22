@@ -186,12 +186,12 @@ class CavaloAdmin(admin.ModelAdmin):
     codigo_proprietario.short_description = 'Código do Proprietário'
     
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        """Filtra carretas disponíveis no admin baseado na classificação do cavalo"""
+        """Passa todas as carretas disponíveis - o JavaScript vai filtrar por classificação"""
         if db_field.name == 'carreta':
             from django.db.models import Q
             carretas_acopladas_ids = Cavalo.objects.exclude(carreta__isnull=True).values_list('carreta_id', flat=True)
             
-            # Tentar obter o cavalo sendo editado para filtrar pela classificação
+            # Tentar obter o cavalo sendo editado
             cavalo_atual = None
             if hasattr(request.resolver_match, 'kwargs') and 'object_id' in request.resolver_match.kwargs:
                 try:
@@ -202,20 +202,13 @@ class CavaloAdmin(admin.ModelAdmin):
             # Se for Bi-truck, não mostrar nenhuma carreta (será desabilitado via JS)
             if cavalo_atual and cavalo_atual.tipo == 'bi_truck':
                 kwargs['queryset'] = Carreta.objects.none()
-            # Se tem cavalo atual e tem classificação, filtrar carretas pela mesma classificação
-            elif cavalo_atual and cavalo_atual.classificacao:
-                kwargs['queryset'] = Carreta.objects.filter(
-                    classificacao=cavalo_atual.classificacao
-                ).exclude(id__in=carretas_acopladas_ids)
-                
-                # Incluir a carreta atual se houver
-                if cavalo_atual.carreta:
-                    kwargs['queryset'] = kwargs['queryset'] | Carreta.objects.filter(pk=cavalo_atual.carreta.pk)
             else:
-                # Se não tem classificação, mostrar apenas carretas Agregado (ou sem classificação)
-                kwargs['queryset'] = Carreta.objects.filter(
-                    Q(classificacao='agregado') | Q(classificacao__isnull=True)
-                ).exclude(id__in=carretas_acopladas_ids)
+                # Passar TODAS as carretas disponíveis (não acopladas) - o JavaScript vai filtrar por classificação
+                kwargs['queryset'] = Carreta.objects.exclude(id__in=carretas_acopladas_ids)
+                
+                # Incluir a carreta atual se houver (mesmo que não esteja disponível, para não perder a referência)
+                if cavalo_atual and cavalo_atual.carreta:
+                    kwargs['queryset'] = kwargs['queryset'] | Carreta.objects.filter(pk=cavalo_atual.carreta.pk)
         
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
     

@@ -44,5 +44,8 @@ urlpatterns = [
     # Upload
     path('upload/', views.UploadView.as_view(), name='upload'),
     path('upload/historico/', views.historico_upload_view, name='historico_upload'),
+    
+    # AJAX endpoints
+    path('ajax/carretas/classificacoes/', views.ajax_carretas_classificacoes, name='ajax_carretas_classificacoes'),
 ]
 
