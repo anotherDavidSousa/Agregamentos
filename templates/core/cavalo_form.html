@@ -92,6 +92,22 @@
     </div>
     
     <div class="form-group">
+        <label for="motorista">Motorista</label>
+        <select id="motorista" name="motorista">
+            <option value="">Selecione...</option>
+            {% for motorista in motoristas %}
+            <option value="{{ motorista.pk }}" 
+                    {% if cavalo and cavalo.motorista and cavalo.motorista.pk == motorista.pk %}selected{% endif %}>
+                {{ motorista.nome }}{% if motorista.cpf %} - {{ motorista.cpf }}{% endif %}
+            </option>
+            {% endfor %}
+        </select>
+        <p style="margin-top: 0.5rem; color: #7f8c8d; font-size: 0.875rem;">
+            Selecione um motorista para associar a este cavalo. Se o motorista já estiver associado a outro cavalo, a associação anterior será removida.
+        </p>
+    </div>
+    
+    <div class="form-group">
         <label for="carreta">Carreta Agregada</label>
         <select id="carreta" name="carreta">
             <option value="">Nenhuma</option>
@@ -225,12 +241,19 @@
             }
         }
         
-        // Adicionar listener para mudança de tipo
+        // Adicionar listener para mudança de tipo e classificação
         document.addEventListener('DOMContentLoaded', function() {
             var tipoSelect = document.getElementById('tipo');
+            var classificacaoSelect = document.getElementById('classificacao');
+            
             if (tipoSelect) {
                 tipoSelect.addEventListener('change', filtrarCarretas);
             }
+            if (classificacaoSelect) {
+                classificacaoSelect.addEventListener('change', filtrarCarretas);
+            }
+            
+            // Executar filtro ao carregar a página
             filtrarCarretas();
         });
     </script>

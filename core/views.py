@@ -640,20 +640,15 @@ def cavalo_create(request):
                             messages.error(request, f'Erro: A carreta selecionada é de "{carreta.get_classificacao_display()}" mas o cavalo é "{cavalo.get_classificacao_display()}". Eles devem ter a mesma classificação.')
                             proprietarios = Proprietario.objects.all()
                             gestores = Gestor.objects.all()
+                            motoristas = Motorista.objects.all().order_by('nome')
                             carretas_acopladas_ids = Cavalo.objects.exclude(carreta__isnull=True).values_list('carreta_id', flat=True)
-                            # Filtrar carretas pela classificação do cavalo
-                            # Apenas carretas Agregado (ou sem classificação) são consideradas disponíveis
-                            if cavalo.classificacao:
-                                carretas_disponiveis = Carreta.objects.filter(classificacao=cavalo.classificacao).exclude(id__in=carretas_acopladas_ids)
-                            else:
-                                # Se o cavalo não tem classificação, mostrar apenas carretas Agregado
-                                carretas_disponiveis = Carreta.objects.filter(
-                                    models.Q(classificacao='agregado') | models.Q(classificacao__isnull=True)
-                                ).exclude(id__in=carretas_acopladas_ids)
+                            # Passar TODAS as carretas disponíveis (não acopladas) - o JavaScript vai filtrar por classificação
+                            carretas_disponiveis = Carreta.objects.exclude(id__in=carretas_acopladas_ids)
                             return render(request, 'core/cavalo_form.html', {
                                 'form_type': 'create',
                                 'proprietarios': proprietarios,
                                 'gestores': gestores,
+                                'motoristas': motoristas,
                                 'carretas_disponiveis': carretas_disponiveis,
                                 'cavalo': None
                             })
@@ -663,21 +658,43 @@ def cavalo_create(request):
             else:
                 cavalo.carreta = None
         
+        # Gerenciar motorista
+        motorista_id = request.POST.get('motorista') or None
+        if motorista_id:
+            try:
+                motorista = Motorista.objects.get(pk=motorista_id)
+                # Se o motorista já está associado a outro cavalo, remover a associação anterior
+                if motorista.cavalo and motorista.cavalo.pk != cavalo.pk:
+                    motorista_anterior_cavalo = motorista.cavalo
+                    motorista.cavalo = None
+                    motorista.save()
+                # Associar motorista ao cavalo atual
+                motorista.cavalo = cavalo
+                motorista.save()
+            except Motorista.DoesNotExist:
+                pass
+        else:
+            # Se não selecionou motorista, remover associação atual se houver
+            if cavalo.motorista:
+                motorista_atual = cavalo.motorista
+                motorista_atual.cavalo = None
+                motorista_atual.save()
+        
         cavalo.save()
         return redirect('cavalo_detail', pk=cavalo.pk)
     
     proprietarios = Proprietario.objects.all()
     gestores = Gestor.objects.all()
+    motoristas = Motorista.objects.all().order_by('nome')
     # Carretas que não estão acopladas a nenhum cavalo
-    # Apenas carretas Agregado (ou sem classificação) são consideradas disponíveis
+    # Passar TODAS as carretas disponíveis (não acopladas) - o JavaScript vai filtrar por classificação
     carretas_acopladas_ids = Cavalo.objects.exclude(carreta__isnull=True).values_list('carreta_id', flat=True)
-    carretas_disponiveis = Carreta.objects.filter(
-        models.Q(classificacao='agregado') | models.Q(classificacao__isnull=True)
-    ).exclude(id__in=carretas_acopladas_ids)
+    carretas_disponiveis = Carreta.objects.exclude(id__in=carretas_acopladas_ids)
     return render(request, 'core/cavalo_form.html', {
         'form_type': 'create',
         'proprietarios': proprietarios,
         'gestores': gestores,
+        'motoristas': motoristas,
         'carretas_disponiveis': carretas_disponiveis,
         'cavalo': None  # Para o template saber que é criação
     })
@@ -727,14 +744,11 @@ def cavalo_edit(request, pk):
                             messages.error(request, f'Erro: A carreta selecionada é de "{carreta.get_classificacao_display()}" mas o cavalo é "{cavalo.get_classificacao_display()}". Eles devem ter a mesma classificação.')
                             proprietarios = Proprietario.objects.all()
                             gestores = Gestor.objects.all()
+                            motoristas = Motorista.objects.all().order_by('nome')
                             carretas_acopladas_ids = Cavalo.objects.exclude(carreta__isnull=True).exclude(pk=pk).values_list('carreta_id', flat=True)
-                            if cavalo.classificacao:
-                                carretas_disponiveis = Carreta.objects.filter(classificacao=cavalo.classificacao).exclude(id__in=carretas_acopladas_ids)
-                            else:
-                                # Se o cavalo não tem classificação, mostrar apenas carretas Agregado
-                                carretas_disponiveis = Carreta.objects.filter(
-                                    models.Q(classificacao='agregado') | models.Q(classificacao__isnull=True)
-                                ).exclude(id__in=carretas_acopladas_ids)
+                            # Passar TODAS as carretas disponíveis (não acopladas) - o JavaScript vai filtrar por classificação
+                            carretas_disponiveis = Carreta.objects.exclude(id__in=carretas_acopladas_ids)
+                            # Incluir a carreta atual se houver (mesmo que não esteja disponível, para não perder a referência)
                             if cavalo.carreta:
                                 carretas_disponiveis = carretas_disponiveis | Carreta.objects.filter(pk=cavalo.carreta.pk)
                             return render(request, 'core/cavalo_form.html', {
@@ -742,6 +756,7 @@ def cavalo_edit(request, pk):
                                 'form_type': 'edit',
                                 'proprietarios': proprietarios,
                                 'gestores': gestores,
+                                'motoristas': motoristas,
                                 'carretas_disponiveis': carretas_disponiveis
                             })
                     
@@ -768,30 +783,47 @@ def cavalo_edit(request, pk):
                         pass
                 cavalo.carreta = None
         
+        # Gerenciar motorista
+        motorista_id = request.POST.get('motorista') or None
+        if motorista_id:
+            try:
+                motorista = Motorista.objects.get(pk=motorista_id)
+                # Se o motorista já está associado a outro cavalo, remover a associação anterior
+                if motorista.cavalo and motorista.cavalo.pk != cavalo.pk:
+                    motorista_anterior_cavalo = motorista.cavalo
+                    motorista.cavalo = None
+                    motorista.save()
+                # Associar motorista ao cavalo atual
+                motorista.cavalo = cavalo
+                motorista.save()
+            except Motorista.DoesNotExist:
+                pass
+        else:
+            # Se não selecionou motorista, remover associação atual se houver
+            if cavalo.motorista:
+                motorista_atual = cavalo.motorista
+                motorista_atual.cavalo = None
+                motorista_atual.save()
+        
         cavalo.save()
         return redirect('cavalo_detail', pk=cavalo.pk)
     
     proprietarios = Proprietario.objects.all()
     gestores = Gestor.objects.all()
+    motoristas = Motorista.objects.all().order_by('nome')
     # Carretas disponíveis + a carreta atual do cavalo (se houver)
+    # Passar TODAS as carretas disponíveis (não acopladas) - o JavaScript vai filtrar por classificação
     carretas_acopladas_ids = Cavalo.objects.exclude(carreta__isnull=True).exclude(pk=cavalo.pk).values_list('carreta_id', flat=True)
-    # Filtrar carretas pela classificação do cavalo (se houver)
-    # Apenas carretas Agregado (ou sem classificação) são consideradas disponíveis
-    if cavalo.classificacao:
-        carretas_disponiveis = Carreta.objects.filter(classificacao=cavalo.classificacao).exclude(id__in=carretas_acopladas_ids)
-        # Incluir a carreta atual se houver (mesmo que não esteja na classificação correta, para não perder a referência)
-        if cavalo.carreta:
-            carretas_disponiveis = carretas_disponiveis | Carreta.objects.filter(pk=cavalo.carreta.pk)
-    else:
-        # Se o cavalo não tem classificação, mostrar apenas carretas Agregado
-        carretas_disponiveis = Carreta.objects.filter(
-            models.Q(classificacao='agregado') | models.Q(classificacao__isnull=True)
-        ).exclude(id__in=carretas_acopladas_ids)
+    carretas_disponiveis = Carreta.objects.exclude(id__in=carretas_acopladas_ids)
+    # Incluir a carreta atual se houver (mesmo que não esteja disponível, para não perder a referência)
+    if cavalo.carreta:
+        carretas_disponiveis = carretas_disponiveis | Carreta.objects.filter(pk=cavalo.carreta.pk)
     return render(request, 'core/cavalo_form.html', {
         'cavalo': cavalo,
         'form_type': 'edit',
         'proprietarios': proprietarios,
         'gestores': gestores,
+        'motoristas': motoristas,
         'carretas_disponiveis': carretas_disponiveis
     })
 
