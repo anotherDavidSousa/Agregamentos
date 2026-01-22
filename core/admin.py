@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.db.models import Case, When, Value, IntegerField, F, CharField
+from django import forms
 from .models import (
     Proprietario, Gestor, Cavalo, Carreta, Motorista, LogCarreta,
     MarcaCavalo, ModeloCavalo, MarcaCarreta, ModeloCarreta,
@@ -54,8 +55,36 @@ class HistoricoGestorAdmin(admin.ModelAdmin):
     date_hierarchy = 'data_inicio'
 
 
+class CavaloAdminForm(forms.ModelForm):
+    """Formulário customizado para adicionar campo de motorista"""
+    motorista = forms.ModelChoiceField(
+        queryset=Motorista.objects.all().order_by('nome'),
+        required=False,
+        label='Motorista',
+        help_text='Selecione um motorista para associar a este cavalo. Se o motorista já estiver associado a outro cavalo, a associação anterior será removida.',
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    
+    class Meta:
+        model = Cavalo
+        fields = '__all__'
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Se estiver editando um cavalo existente, pré-selecionar o motorista atual
+        if self.instance and self.instance.pk:
+            # Recarregar o objeto do banco para garantir que temos o relacionamento atualizado
+            try:
+                cavalo = Cavalo.objects.select_related('motorista').get(pk=self.instance.pk)
+                if cavalo.motorista:
+                    self.fields['motorista'].initial = cavalo.motorista.pk
+            except Cavalo.DoesNotExist:
+                pass
+
+
 @admin.register(Cavalo)
 class CavaloAdmin(admin.ModelAdmin):
+    form = CavaloAdminForm
     list_display = [
         'placa', 
         'carreta_display', 
@@ -74,7 +103,7 @@ class CavaloAdmin(admin.ModelAdmin):
             'fields': ('placa', 'ano', 'cor', 'fluxo', 'tipo', 'classificacao', 'situacao')
         }),
         ('Relacionamentos', {
-            'fields': ('proprietario', 'gestor', 'carreta')
+            'fields': ('proprietario', 'gestor', 'motorista', 'carreta')
         }),
         ('Arquivos e Observações', {
             'fields': ('foto', 'documento', 'observacoes')
@@ -213,13 +242,33 @@ class CavaloAdmin(admin.ModelAdmin):
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
     
     def save_model(self, request, obj, form, change):
-        """Garante que Bi-truck não tenha carreta e limpa carreta se tipo mudou para bi_truck"""
+        """Garante que Bi-truck não tenha carreta e gerencia associação de motorista"""
         # Se for Bi-truck, garantir que não tenha carreta
         if obj.tipo == 'bi_truck':
             # Se tinha carreta antes, remover
             if obj.carreta:
                 obj.carreta = None
+        
+        # Salvar o cavalo primeiro para ter o ID
         super().save_model(request, obj, form, change)
+        
+        # Gerenciar motorista após salvar o cavalo
+        motorista_selecionado = form.cleaned_data.get('motorista')
+        if motorista_selecionado:
+            # Se o motorista já está associado a outro cavalo, remover a associação anterior
+            if motorista_selecionado.cavalo and motorista_selecionado.cavalo.pk != obj.pk:
+                motorista_anterior_cavalo = motorista_selecionado.cavalo
+                motorista_selecionado.cavalo = None
+                motorista_selecionado.save()
+            # Associar motorista ao cavalo atual
+            motorista_selecionado.cavalo = obj
+            motorista_selecionado.save()
+        else:
+            # Se não selecionou motorista, remover associação atual se houver
+            if obj.motorista:
+                motorista_atual = obj.motorista
+                motorista_atual.cavalo = None
+                motorista_atual.save()
 
 
 @admin.register(Carreta)
