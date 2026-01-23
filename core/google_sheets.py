@@ -208,6 +208,14 @@ def _get_insert_position(worksheet, cavalo):
     try:
         from .models import Cavalo
         
+        # Recarregar o cavalo do banco para garantir que temos os relacionamentos atualizados
+        # Isso é importante porque o motorista pode ter sido associado após o save inicial
+        try:
+            cavalo = Cavalo.objects.select_related('motorista', 'carreta', 'proprietario', 'gestor').get(pk=cavalo.pk)
+        except Cavalo.DoesNotExist:
+            # Se o cavalo não existe mais, retornar posição padrão
+            return 2
+        
         # Buscar todos os cavalos na ordem correta (mesma ordenação do template/admin)
         # Bi-trucks devem ser incluídos mesmo sem carreta
         # Outros tipos precisam ter carreta
@@ -265,13 +273,20 @@ def _get_insert_position(worksheet, cavalo):
         classificacao_ordem = 0 if (cavalo.classificacao == 'agregado' or not cavalo.classificacao) else (1 if cavalo.classificacao == 'frota' else 2)
         terceiro_ordem = 1 if cavalo.classificacao == 'terceiro' else 0
         tipo_ordem = 0 if cavalo.tipo == 'bi_truck' else (1 if cavalo.tipo == 'toco' else (2 if cavalo.tipo == 'trucado' else 3))
+        # Obter nome do motorista de forma segura
+        motorista_nome = ''
+        try:
+            if cavalo.motorista:
+                motorista_nome = getattr(cavalo.motorista, 'nome', '') or ''
+        except (AttributeError, Exception):
+            motorista_nome = ''
         cavalo_ordem = (
             terceiro_ordem,
             classificacao_ordem,
             (0 if cavalo.situacao == 'ativo' else 1 if cavalo.situacao == 'parado' else 2),
             (0 if cavalo.fluxo == 'escoria' else 1 if cavalo.fluxo == 'minerio' else 2),
             tipo_ordem,
-            (cavalo.motorista.nome if cavalo.motorista else '')
+            motorista_nome
         )
         
         # Contar quantos cavalos vêm antes deste na ordem
@@ -282,13 +297,20 @@ def _get_insert_position(worksheet, cavalo):
             outro_classificacao_ordem = 0 if (outro_cavalo.classificacao == 'agregado' or not outro_cavalo.classificacao) else (1 if outro_cavalo.classificacao == 'frota' else 2)
             outro_terceiro_ordem = 1 if outro_cavalo.classificacao == 'terceiro' else 0
             outro_tipo_ordem = 0 if outro_cavalo.tipo == 'bi_truck' else (1 if outro_cavalo.tipo == 'toco' else (2 if outro_cavalo.tipo == 'trucado' else 3))
+            # Obter nome do motorista de forma segura
+            outro_motorista_nome = ''
+            try:
+                if outro_cavalo.motorista:
+                    outro_motorista_nome = getattr(outro_cavalo.motorista, 'nome', '') or ''
+            except (AttributeError, Exception):
+                outro_motorista_nome = ''
             outro_ordem = (
                 outro_terceiro_ordem,
                 outro_classificacao_ordem,
                 (0 if outro_cavalo.situacao == 'ativo' else 1 if outro_cavalo.situacao == 'parado' else 2),
                 (0 if outro_cavalo.fluxo == 'escoria' else 1 if outro_cavalo.fluxo == 'minerio' else 2),
                 outro_tipo_ordem,
-                (outro_cavalo.motorista.nome if outro_cavalo.motorista else '')
+                outro_motorista_nome
             )
             if outro_ordem < cavalo_ordem:
                 posicao += 1
