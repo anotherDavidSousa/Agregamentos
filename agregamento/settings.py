@@ -32,7 +32,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'core',
-]
+]   'rest_framework',          
+    'rest_framework_simplejwt',
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -177,3 +178,19 @@ GOOGLE_SHEETS_SPREADSHEET_ID = config('GOOGLE_SHEETS_SPREADSHEET_ID', default=''
 # Nome da aba na planilha (padrão: 'Cavalos')
 # Se a aba não existir, será criada automaticamente
 GOOGLE_SHEETS_WORKSHEET_NAME = config('GOOGLE_SHEETS_WORKSHEET_NAME', default='Cavalos')
+
+
+# Cole no final do settings.py
+from datetime import timedelta
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=8),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+}

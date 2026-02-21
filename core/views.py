@@ -1188,3 +1188,65 @@ def ajax_carretas_classificacoes(request):
 
 
 
+
+# ── API JWT ──────────────────────────────────────────────────────────
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenRefreshView
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def api_login(request):
+    usuario = request.data.get('usuario')
+    senha = request.data.get('senha')
+
+    if not usuario or not senha:
+        return Response(
+            {'erro': 'Informe usuário e senha.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    user = authenticate(request, username=usuario, password=senha)
+
+    if user is None:
+        return Response(
+            {'erro': 'Credenciais inválidas.'},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+
+    if not user.is_active:
+        return Response(
+            {'erro': 'Usuário desativado. Contate o administrador.'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    refresh = RefreshToken.for_user(user)
+
+    return Response({
+        'access': str(refresh.access_token),
+        'refresh': str(refresh),
+        'usuario': {
+            'nome': user.get_full_name() or user.username,
+            'email': user.email,
+            'admin': user.is_staff,
+        }
+    })
+
+
+api_refresh_token = TokenRefreshView.as_view()
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def api_me(request):
+    """Rota de teste — retorna os dados do usuário autenticado pelo token."""
+    user = request.user
+    return Response({
+        'nome': user.get_full_name() or user.username,
+        'email': user.email,
+        'admin': user.is_staff,
+    })

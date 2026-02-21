@@ -49,3 +49,11 @@ urlpatterns = [
     path('ajax/carretas/classificacoes/', views.ajax_carretas_classificacoes, name='ajax_carretas_classificacoes'),
 ]
 
+urlpatterns = [
+    # ... tudo que já existe ...
+
+    # API JWT (app desktop)
+    path('api/login/', views.api_login, name='api_login'),
+    path('api/token/refresh/', views.api_refresh_token, name='api_token_refresh'),
+    path('api/me/', views.api_me, name='api_me'),
+]
