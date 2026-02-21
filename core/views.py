@@ -1197,7 +1197,7 @@ from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
 
-
+#apenas para update
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def api_login(request):

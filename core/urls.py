@@ -52,6 +52,6 @@ urlpatterns = [
     path('api/login/', views.api_login, name='api_login'),
     path('api/token/refresh/', views.api_refresh_token, name='api_token_refresh'),
     path('api/me/', views.api_me, name='api_me'),
-
+#apenas para update
 ]
 
